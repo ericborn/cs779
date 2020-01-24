@@ -53,12 +53,13 @@ START WITH 1
 INCREMENT BY 1;
 
 -- Creates the DVDReview table
--- Uses DVDReviewId_Seq to increment the ReviewId column
--- MemberId is a foreign key which references MemberId from the member table
--- DVDId is a foreign key which references DVDId from the DVD table
--- StarValue is using a check to ensure its a value between 0 and 5
--- review date defaults to the current date/time
--- The DVDReview column allows variable character lengths up to 500
+-- a. MemberId is a foreign key which references MemberId from the member table
+-- a. DVDId is a foreign key which references DVDId from the DVD table
+-- b. Table has the StarValue column which is NOT NULL
+-- c. review date defaults to the current date/time and cannot be null
+-- d. Comment column is optional and allows variable character lengths up to 500
+-- e. StarValue is using a check to ensure its a value between 0 and 5
+-- f. Uses DVDReviewId_Seq to increment the ReviewId column
 CREATE TABLE DVDReview (
 	ReviewId NUMERIC PRIMARY KEY 
 		DEFAULT (NEXT VALUE FOR DVDReviewId_Seq),
@@ -66,5 +67,44 @@ CREATE TABLE DVDReview (
 	DVDId NUMERIC(16,0) FOREIGN KEY REFERENCES DVD(DVDId),
 	StarValue INT NOT NULL CHECK (StarValue >= 0 AND StarValue <= 5),
 	ReviewDate DATETIME NOT NULL DEFAULT GETDATE(),
-	DVDReview VARCHAR(500)
+	Comment VARCHAR(500) NULL
 );
+
+--  4.	Testing schema augmentation, DBMS date function, view, code reuse
+-- Ensure the table is empty
+SELECT * FROM DVDReview
+
+-- a.	Insert three records into the DVDREVIEW
+INSERT INTO DVDReview(MemberId, DVDId, StarValue, ReviewDate, Comment)
+VALUES (6, 1, 5, '2018-06-24','Groundhog Day is a Bill Murray classic!'),
+	   (10, 7, 2, GETDATE(), 'Very average even for a Bond film.'),
+	   (2, 2, 1, '2015-02-11', 'I''d rather see Tom back on the island.')
+
+--!!!TODO!!!!
+-- CHANGE TO VIEW
+-- b.	Write a view that returns the following columns: 
+--		a concatenated Member Name containing the Member’s First and Last Name, 
+--		the Title of the DVD, and the Member’s Review including STARVALUE, REVIEWDATE and Comment
+
+-- Use concat to combine the members first and last name. Extra empty string included to give the names a space
+-- Joins the DVDReview, Member and DVD tables using table abbreviation
+SELECT CONCAT(m.MemberFirstName, ' ', m.MemberLastName) AS 'Member Name', d.DVDTitle, dr.StarValue, dr.ReviewDate, dr.Comment
+FROM DVDReview dr
+JOIN Member m ON m.MemberId = dr.MemberId
+JOIN DVD d ON d.DVDId = dr.DVDId;
+
+-- c.	Write an insert statement that tries to insert a review that violates the STARVALUE check constraint.
+-- Statement fails due to the star value being 10
+INSERT INTO DVDReview(MemberId, DVDId, StarValue, ReviewDate, Comment)
+VALUES (3, 5, 10, '2013-11-17','10 STARS BECAUSE IT WAS THAT GOOD!!!!!!!');
+
+-- d. Updates a review for member 2 on dvd 2 to a star value of 5
+UPDATE DVDReview
+SET StarValue = 5
+WHERE MemberId = 2 AND DVDId = 2;
+
+-- e. Deletes a row based on member id 10 and dvd id 7 to ensure its the correct record.
+DELETE FROM DVDReview
+WHERE DVDReview.MemberId = 10 AND DVDId = 7;
+
+-- 5.	Learning objectives: schema extension
