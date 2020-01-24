@@ -1,6 +1,6 @@
 use NetFlix
 
--- 1. Examine the Membership table
+-- 1. Adding and populating columns, SQL string operators
 
 -- a. Select all data from the memebership table
 SELECT * FROM membership;
@@ -16,7 +16,7 @@ UPDATE membership
 SET DVDAtTime = (SELECT LEFT(MembershipType,1) 
 				 FROM membership m2
 				 WHERE membership.MembershipId = m2.MembershipId
-				)
+				);
 
 -- d.	Select all data from the membership table to verify that you obtained the intended results.
 SELECT MembershipId, MembershipType, MembershipLimitPerMonth, MembershipMonthlyPrice, 
@@ -24,7 +24,8 @@ SELECT MembershipId, MembershipType, MembershipLimitPerMonth, MembershipMonthlyP
 FROM membership;
 
 --2. Sequences
-SELECT * FROM rental
+-- View the rental table
+SELECT * FROM rental;
 
 -- a.	Implement a single sequence 
 -- Starting the squence at 11 since there are already 10 records inside the rental table
@@ -38,3 +39,22 @@ INCREMENT BY 1;
 INSERT INTO rental (RentalId, MemberId, DVDId, RentalRequestDate, RentalShippedDate, RentalReturnedDate)
 VALUES (NEXT VALUE FOR dbo.RentalId, 9, 3, GETDATE(), NULL, NULL),
 	   (NEXT VALUE FOR dbo.RentalId, 8, 4, GETDATE(), NULL, NULL);
+
+-- 3.	Schema augmentation, nullability, CHECK
+SELECT * FROM Member;
+SELECT * FROM DVD;
+
+CREATE SEQUENCE DVDReviewId
+AS INT
+START WITH 1
+INCREMENT BY 1;
+
+CREATE TABLE DVDReview (
+	ReviewId INT PRIMARY KEY 
+		DEFAULT (NEXT VALUE FOR DVDReviewId),
+	MemberId INT FOREIGN KEY REFERENCES Member(MemberId),
+	StarValue INT NOT NULL CHECK (StarValue >= 0 AND StarValue <= 5),
+	ReviewDate DATETIME NOT NULL DEFAULT GETDATE(),
+	DVDReview VARCHAR(255),
+
+);
