@@ -107,4 +107,22 @@ WHERE MemberId = 2 AND DVDId = 2;
 DELETE FROM DVDReview
 WHERE DVDReview.MemberId = 10 AND DVDId = 7;
 
--- 5.	Learning objectives: schema extension
+-- 5.	Schema extension
+SELECT * FROM DVD
+SELECT * FROM rental
+
+-- Creates a sequence which will be used to increment the DVD_Copy table
+CREATE SEQUENCE DVDCopyId_Seq
+AS INT
+START WITH 1
+INCREMENT BY 1;
+
+-- DVD_Copy contains a unique ID for each dvd the store owns, even if they own multiples of the same movie.
+-- This is incremented by the sequence DVDCopyId_Seq
+-- The MovieId column is linked as a foreign key which references a DVDId from the DVD table.
+CREATE TABLE DVD_Copy (
+	DVDId NUMERIC PRIMARY KEY
+	DEFAULT (NEXT VALUE FOR DVDCopyId_Seq),
+	MovieId NUMERIC(16,0) FOREIGN KEY REFERENCES DVD(DVDId),
+	CurrentStatus SMALLINT NOT NULL CHECK (StarValue >= 0 AND StarValue <= 1),
+);
