@@ -61,13 +61,15 @@ INCREMENT BY 1;
 -- e. StarValue is using a check to ensure its a value between 0 and 5
 -- f. Uses DVDReviewId_Seq to increment the ReviewId column
 CREATE TABLE DVDReview (
-	ReviewId NUMERIC PRIMARY KEY 
-		DEFAULT (NEXT VALUE FOR DVDReviewId_Seq),
-	MemberId NUMERIC(12,0) FOREIGN KEY REFERENCES Member(MemberId),
-	DVDId NUMERIC(16,0) FOREIGN KEY REFERENCES DVD(DVDId),
-	StarValue INT NOT NULL CHECK (StarValue >= 0 AND StarValue <= 5),
-	ReviewDate DATETIME NOT NULL DEFAULT GETDATE(),
+	ReviewId NUMERIC(16) DEFAULT (NEXT VALUE FOR DVDReviewId_Seq) NOT NULL,
+	MemberId NUMERIC(12) NOT NULL,
+	DVDId NUMERIC(16) NOT NULL,
+	StarValue INT CHECK (StarValue >= 0 AND StarValue <= 5) NOT NULL,
+	ReviewDate DATETIME DEFAULT GETDATE() NOT NULL,
 	Comment VARCHAR(500) NULL
+	CONSTRAINT DVDReview_ReviewId_PK PRIMARY KEY (ReviewId),
+	CONSTRAINT DVDReview_MemberId_FK FOREIGN KEY (MemberId) REFERENCES Member(MemberId),
+	CONSTRAINT DVDReview_DVDId_FK FOREIGN KEY (DVDId) REFERENCES DVD(DVDId)
 );
 
 --  4.	Testing schema augmentation, DBMS date function, view, code reuse
@@ -118,7 +120,7 @@ SELECT * FROM DVD
 SELECT * FROM rental
 
 -- Creates a sequence which will be used to increment the DVD_Copy table
-CREATE SEQUENCE DVDCopyId_Seq
+CREATE SEQUENCE RentalDVDId_Seq
 AS INT
 START WITH 1
 INCREMENT BY 1;
@@ -127,11 +129,20 @@ INCREMENT BY 1;
 -- This is incremented by the sequence DVDCopyId_Seq
 -- The MovieId column is linked as a foreign key which references a DVDId from the DVD table.
 CREATE TABLE DVD_Copy (
-	DVDId NUMERIC PRIMARY KEY
-	DEFAULT (NEXT VALUE FOR DVDCopyId_Seq),
-	MovieId NUMERIC(16,0) FOREIGN KEY REFERENCES DVD(DVDId),
-	CurrentStatus SMALLINT NOT NULL CHECK (StarValue >= 0 AND StarValue <= 1),
+	DVDCopyId NUMERIC(16) DEFAULT (NEXT VALUE FOR RentalDVDId_Seq) NOT NULL,
+	DVDId NUMERIC(16) NOT NULL,
+	CONSTRAINT DVD_Copy_PK PRIMARY KEY (DVDCopyId),
+	CONSTRAINT DVD_DVDId_FK FOREIGN KEY (DVDId) REFERENCES DVD(DVDId)
 );
+
+-- Drops the foreign key from rental to dvd
+ALTER TABLE Rental
+DROP CONSTRAINT Rental_DVDId_FK
+
+ALTER TABLE Rental
+ADD FOREIGN KEY (DVDId) REFERENCES DVD_Copy(DVDCopyId)
+
+SELECT * FROM DVD_Copy
 
 -- !!!!!!!!TODO!!!!!!!!!!!
 -- COMPLETE QUESTION 5
@@ -149,3 +160,5 @@ JOIN role r ON r.RoleId = mpr.RoleId
 WHERE g.GenreName = 'Drama'
 ORDER BY d.DVDTitle
 
+SELECT * FROM Member
+SELECT * FROM 
