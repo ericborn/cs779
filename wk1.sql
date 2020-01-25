@@ -28,7 +28,7 @@ FROM membership;
 SELECT * FROM rental;
 
 -- a.	Implement a single sequence 
--- Starting the squence at 11 since there are already 10 records inside the rental table
+-- Starting the sequence at 11 since there are already 10 records inside the rental table
 CREATE SEQUENCE RentalId_Seq
 AS INT
 START WITH 11
@@ -80,18 +80,21 @@ VALUES (6, 1, 5, '2018-06-24','Groundhog Day is a Bill Murray classic!'),
 	   (10, 7, 2, GETDATE(), 'Very average even for a Bond film.'),
 	   (2, 2, 1, '2015-02-11', 'I''d rather see Tom back on the island.')
 
---!!!TODO!!!!
--- CHANGE TO VIEW
 -- b.	Write a view that returns the following columns: 
 --		a concatenated Member Name containing the Member’s First and Last Name, 
 --		the Title of the DVD, and the Member’s Review including STARVALUE, REVIEWDATE and Comment
 
 -- Use concat to combine the members first and last name. Extra empty string included to give the names a space
 -- Joins the DVDReview, Member and DVD tables using table abbreviation
+CREATE VIEW review_view AS
 SELECT CONCAT(m.MemberFirstName, ' ', m.MemberLastName) AS 'Member Name', d.DVDTitle, dr.StarValue, dr.ReviewDate, dr.Comment
 FROM DVDReview dr
 JOIN Member m ON m.MemberId = dr.MemberId
 JOIN DVD d ON d.DVDId = dr.DVDId;
+
+SELECT *
+FROM review_view
+WHERE DVDTitle = 'Groundhog Day'
 
 -- c.	Write an insert statement that tries to insert a review that violates the STARVALUE check constraint.
 -- Statement fails due to the star value being 10
@@ -106,6 +109,9 @@ WHERE MemberId = 2 AND DVDId = 2;
 -- e. Deletes a row based on member id 10 and dvd id 7 to ensure its the correct record.
 DELETE FROM DVDReview
 WHERE DVDReview.MemberId = 10 AND DVDId = 7;
+
+-- !!!!!!!!TODO!!!!!!!!!!!
+-- COMPLETE QUESTION 5
 
 -- 5.	Schema extension
 SELECT * FROM DVD
@@ -126,3 +132,20 @@ CREATE TABLE DVD_Copy (
 	MovieId NUMERIC(16,0) FOREIGN KEY REFERENCES DVD(DVDId),
 	CurrentStatus SMALLINT NOT NULL CHECK (StarValue >= 0 AND StarValue <= 1),
 );
+
+-- !!!!!!!!TODO!!!!!!!!!!!
+-- COMPLETE QUESTION 5
+
+
+-- Part 2 - Joins and Subqueries 
+-- 6. Select all dramas
+SELECT d.DVDTitle, g.GenreName, rat.RatingName, CONCAT(mp.PersonFirstName, ' ', mp.PersonLastName) AS 'Movie Person', r.RoleName
+FROM DVD D
+JOIN Genre g ON g.GenreId = d.GenreId
+JOIN Rating rat ON rat.RatingId = d.RatingId
+JOIN MoviePersonRole mpr ON mpr.DVDId = d.DVDId
+JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
+JOIN role r ON r.RoleId = mpr.RoleId
+WHERE g.GenreName = 'Drama'
+ORDER BY d.DVDTitle
+
