@@ -1,4 +1,4 @@
-use NetFlix
+USE NetFlix
 
 -- 1. Adding and populating columns, SQL string operators
 
@@ -9,7 +9,7 @@ SELECT * FROM membership;
 ALTER TABLE membership
 ADD DVDAtTime SMALLINT;
 
--- c. Updates the rows with the apropriate value for DVDAtTime
+-- c. Updates the rows with the appropriate value for DVDAtTime
 -- Uses a left select 1 to get the first character from the MembershipType column
 -- joins membership back on itself on the MembershipId column to ensure it updates the correct record
 UPDATE membership
