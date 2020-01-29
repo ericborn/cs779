@@ -125,15 +125,25 @@ AS INT
 START WITH 1
 INCREMENT BY 1;
 
+--DROP TABLE DVD_Copy
+
 -- DVD_Copy contains a unique ID for each dvd the store owns, even if they own multiples of the same movie.
 -- This is incremented by the sequence DVDCopyId_Seq
 -- The MovieId column is linked as a foreign key which references a DVDId from the DVD table.
 CREATE TABLE DVD_Copy (
 	DVDCopyId NUMERIC(16) DEFAULT (NEXT VALUE FOR RentalDVDId_Seq) NOT NULL,
 	DVDId NUMERIC(16) NOT NULL,
+	DVDQtyOnHand BIT,
+	DVDQtyOnRent BIT,
+	DVDQtyLost BIT,
 	CONSTRAINT DVD_Copy_PK PRIMARY KEY (DVDCopyId),
-	CONSTRAINT DVD_DVDId_FK FOREIGN KEY (DVDId) REFERENCES DVD(DVDId)
+	--CONSTRAINT DVD_DVDId_PK PRIMARY KEY (DVDId)
+	--CONSTRAINT DVD_DVDId_FK FOREIGN KEY (DVDId) REFERENCES DVD(DVDId)
 );
+
+SELECT * FROM DVD_Copy
+
+INSERT INTO DVD_Copy (
 
 -- Drops the foreign key from rental to dvd
 ALTER TABLE Rental
