@@ -119,31 +119,63 @@ WHERE DVDReview.MemberId = 10 AND DVDId = 7;
 SELECT * FROM DVD
 SELECT * FROM rental
 
+DROP TABLE DVD_Copy
+DROP SEQUENCE DVDCopyId_Seq
+
 -- Creates a sequence which will be used to increment the DVD_Copy table
-CREATE SEQUENCE RentalDVDId_Seq
+CREATE SEQUENCE DVDCopyId_Seq
 AS INT
 START WITH 1
 INCREMENT BY 1;
-
---DROP TABLE DVD_Copy
 
 -- DVD_Copy contains a unique ID for each dvd the store owns, even if they own multiples of the same movie.
 -- This is incremented by the sequence DVDCopyId_Seq
 -- The MovieId column is linked as a foreign key which references a DVDId from the DVD table.
 CREATE TABLE DVD_Copy (
-	DVDCopyId NUMERIC(16) DEFAULT (NEXT VALUE FOR RentalDVDId_Seq) NOT NULL,
+	DVDCopyId NUMERIC(16) DEFAULT (NEXT VALUE FOR DVDCopyId_Seq) NOT NULL,
 	DVDId NUMERIC(16) NOT NULL,
-	DVDQtyOnHand BIT,
-	DVDQtyOnRent BIT,
-	DVDQtyLost BIT,
+	DVDQtyOnHand BIT DEFAULT 0,
+	DVDQtyOnRent BIT DEFAULT 0,
+	DVDQtyLost BIT DEFAULT 0,
 	CONSTRAINT DVD_Copy_PK PRIMARY KEY (DVDCopyId),
 	--CONSTRAINT DVD_DVDId_PK PRIMARY KEY (DVDId)
 	--CONSTRAINT DVD_DVDId_FK FOREIGN KEY (DVDId) REFERENCES DVD(DVDId)
 );
 
+
+DECLARE @cnt INT = 1;
+DECLARE @total INT = (
+SELECT COUNT(*) AS 'total' FROM DVD);
+WHILE @cnt <= @total 
+BEGIN
+	DECLARE @rowCnt INT = 1;
+	DECLARE @dvdTotal INT = (
+	SELECT SUM(DVDQuantityOnHand+DVDQuantityOnRent+DVDLostQuantity) AS 'dvd total'
+	FROM DVD
+	WHERE DVDId = @cnt);
+	
+	WHILE @rowCnt < @dvdTotal + 1
+		BEGIN
+			INSERT INTO DVD_Copy (DVDCopyId, DVDId)
+			VALUES (NEXT VALUE FOR dbo.DVDCopyId_Seq, @cnt)
+		SET @rowCnt = @rowCnt + 1;
+		END;
+	--print @cnt
+	SET @cnt = @cnt + 1;
+END;
+
 SELECT * FROM DVD_Copy
 
-INSERT INTO DVD_Copy (
+
+FOR 
+SELECT SUM(DVDQuantityOnHand+DVDQuantityOnRent+DVDLostQuantity)
+FROM DVD
+WHERE DVDId = 1
+
+
+
+INSERT INTO DVD_Copy (DVDCopyId, DVDId)
+VALUES (NEXT VALUE FOR dbo.DVDCopyId_Seq, 
 
 -- Drops the foreign key from rental to dvd
 ALTER TABLE Rental
