@@ -118,6 +118,9 @@ WHERE DVDReview.MemberId = 10 AND DVDId = 7;
 -- 5.	Schema extension
 SELECT * FROM DVD
 SELECT * FROM rental
+WHERE RentalReturnedDate IS NULL
+ORDER BY DVDCopyId
+
 
 --DROP TABLE DVD_Copy
 --DROP SEQUENCE DVDCopyId_Seq
@@ -175,12 +178,6 @@ END;
 
 --SELECT * FROM DVD_Copy
 
--- Update for the lost copy of Groundhog Day
-UPDATE DVD_Copy
-SET DVDQtyLost = 1
-WHERE DVDCopyId = 1
-
-
 -- Drops the quantity columns since they've been moved to DVD_copy
 ALTER TABLE DVD
 DROP COLUMN DVDQuantityOnHand, DVDQuantityOnRent, DVDLostQuantity
@@ -191,17 +188,45 @@ DROP CONSTRAINT Rental_DVDId_FK
 
 -- rename DVDId to DVDCopyId
 EXEC sp_rename 'Rental.DVDId', 'DVDCopyId';
- 
-SELECT * FROM DVD_Copy
-SELECT * FROM DVD
-SELECT * FROM Rental ORDER BY DVDCopyId
 
 -- creates a FK constraint from rental to dvd_copy
 ALTER TABLE Rental
 ADD CONSTRAINT Rental_DVDCopyId_FK
 FOREIGN KEY (DVDCopyId) REFERENCES DVD_Copy(DVDCopyId)
 
+-- Update DVD's that are shipped but have no return date from the rental table
+UPDATE DVD_Copy
+SET DVDQtyOnRent = 1
+WHERE DVDCopyId IN (11, 12, 31, 32, 41)
 
+-- Update rental table DVDCopyId to match new ID's from the DVD_Copy table
+UPDATE Rental
+SET DVDCopyId = 11
+WHERE RentalId = 7 AND MemberId = 9
+
+UPDATE Rental
+SET DVDCopyId = 12
+WHERE RentalId = 8 AND MemberId = 8
+
+UPDATE Rental
+SET DVDCopyId = 31
+WHERE RentalId = 4 AND MemberId = 5
+
+UPDATE Rental
+SET DVDCopyId = 32
+WHERE RentalId = 9 AND MemberId = 1
+
+UPDATE Rental
+SET DVDCopyId = 41
+WHERE RentalId = 5 AND MemberId = 5
+
+UPDATE Rental
+SET DVDCopyId = 52
+WHERE RentalId = 10 AND MemberId = 15
+
+SELECT * FROM DVD_Copy
+SELECT * FROM DVD
+SELECT * FROM Rental ORDER BY DVDCopyId
 
 
 -- !!!!!!!!TODO!!!!!!!!!!!
