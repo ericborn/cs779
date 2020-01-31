@@ -241,5 +241,14 @@ INNER JOIN role r ON r.RoleId = mpr.RoleId
 WHERE g.GenreName = 'Drama'
 ORDER BY d.DVDTitle
 
-SELECT * FROM Member
-SELECT * FROM 
+-- 7. IS NULL, composite restrictions, subqueries
+SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Member', DVDTitle
+FROM Rental r
+JOIN Member m ON m.MemberId = r.MemberId
+JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+JOIN DVD d ON d.DVDId = dc.DVDCopyId
+WHERE 
+
+SELECT * FROM DVD
+rental
+Member
