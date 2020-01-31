@@ -96,8 +96,8 @@ VALUES (6, 1, 5, '2018-06-24','Groundhog Day is a Bill Murray classic!'),
 CREATE VIEW review_view AS
 SELECT CONCAT(m.MemberFirstName, ' ', m.MemberLastName) AS 'Member Name', d.DVDTitle, dr.StarValue, dr.ReviewDate, dr.Comment
 FROM DVDReview dr
-JOIN Member m ON m.MemberId = dr.MemberId
-JOIN DVD d ON d.DVDId = dr.DVDId;
+INNER JOIN Member m ON m.MemberId = dr.MemberId
+INNER JOIN DVD d ON d.DVDId = dr.DVDId;
 
 SELECT *
 FROM review_view
@@ -179,8 +179,6 @@ BEGIN
 	SET @cnt = @cnt + 1;
 END;
 
---SELECT * FROM DVD_Copy
-
 -- Drops the quantity columns since they've been moved to DVD_copy
 ALTER TABLE DVD
 DROP COLUMN DVDQuantityOnHand, DVDQuantityOnRent, DVDLostQuantity;
@@ -227,24 +225,19 @@ UPDATE Rental
 SET DVDCopyId = 52
 WHERE RentalId = 10 AND MemberId = 15;
 
-SELECT * FROM DVD_Copy
-SELECT * FROM DVD
-SELECT * FROM Rental ORDER BY DVDCopyId
-
-
--- !!!!!!!!TODO!!!!!!!!!!!
--- COMPLETE QUESTION 5
-
+--SELECT * FROM DVD_Copy
+--SELECT * FROM DVD
+--SELECT * FROM Rental ORDER BY DVDCopyId
 
 -- Part 2 - Joins and Subqueries 
 -- 6. Select all dramas
 SELECT d.DVDTitle, g.GenreName, rat.RatingName, CONCAT(mp.PersonFirstName, ' ', mp.PersonLastName) AS 'Movie Person', r.RoleName
 FROM DVD D
-JOIN Genre g ON g.GenreId = d.GenreId
-JOIN Rating rat ON rat.RatingId = d.RatingId
-JOIN MoviePersonRole mpr ON mpr.DVDId = d.DVDId
-JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
-JOIN role r ON r.RoleId = mpr.RoleId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+INNER JOIN Rating rat ON rat.RatingId = d.RatingId
+INNER JOIN MoviePersonRole mpr ON mpr.DVDId = d.DVDId
+INNER JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
+INNER JOIN role r ON r.RoleId = mpr.RoleId
 WHERE g.GenreName = 'Drama'
 ORDER BY d.DVDTitle
 
