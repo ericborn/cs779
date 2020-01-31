@@ -2,8 +2,13 @@ USE NetFlix
 
 -- 1. Adding and populating columns, SQL string operators
 
--- a. Select all data from the memebership table
+-- a. Select all data from the memebership table to see the columns
 SELECT * FROM membership;
+
+-- Select with all columns specified
+SELECT MembershipId, MembershipType, MembershipLimitPerMonth, 
+MembershipMonthlyPrice, MembershipMonthlyTax, MembershipDVDLostPrice
+FROM membership;
 
 -- b. Add an attribute called DVDAtTime to the membership table
 ALTER TABLE membership
@@ -74,13 +79,13 @@ CREATE TABLE DVDReview (
 
 --  4.	Testing schema augmentation, DBMS date function, view, code reuse
 -- Ensure the table is empty
-SELECT * FROM DVDReview
+SELECT * FROM DVDReview;
 
 -- a.	Insert three records into the DVDREVIEW
 INSERT INTO DVDReview(MemberId, DVDId, StarValue, ReviewDate, Comment)
 VALUES (6, 1, 5, '2018-06-24','Groundhog Day is a Bill Murray classic!'),
 	   (10, 7, 2, GETDATE(), 'Very average even for a Bond film.'),
-	   (2, 2, 1, '2015-02-11', 'I''d rather see Tom back on the island.')
+	   (2, 2, 1, '2015-02-11', 'I''d rather see Tom back on the island.');
 
 -- b.	Write a view that returns the following columns: 
 --		a concatenated Member Name containing the Member’s First and Last Name, 
@@ -178,11 +183,11 @@ END;
 
 -- Drops the quantity columns since they've been moved to DVD_copy
 ALTER TABLE DVD
-DROP COLUMN DVDQuantityOnHand, DVDQuantityOnRent, DVDLostQuantity
+DROP COLUMN DVDQuantityOnHand, DVDQuantityOnRent, DVDLostQuantity;
 
 -- Drops the foreign key from rental to dvd
 ALTER TABLE Rental
-DROP CONSTRAINT Rental_DVDId_FK
+DROP CONSTRAINT Rental_DVDId_FK;
 
 -- rename DVDId to DVDCopyId
 EXEC sp_rename 'Rental.DVDId', 'DVDCopyId';
@@ -190,37 +195,37 @@ EXEC sp_rename 'Rental.DVDId', 'DVDCopyId';
 -- creates a FK constraint from rental to dvd_copy
 ALTER TABLE Rental
 ADD CONSTRAINT Rental_DVDCopyId_FK
-FOREIGN KEY (DVDCopyId) REFERENCES DVD_Copy(DVDCopyId)
+FOREIGN KEY (DVDCopyId) REFERENCES DVD_Copy(DVDCopyId);
 
 -- Update DVD's that are shipped but have no return date from the rental table
 UPDATE DVD_Copy
 SET DVDQtyOnRent = 1
-WHERE DVDCopyId IN (11, 12, 31, 32, 41)
+WHERE DVDCopyId IN (11, 12, 31, 32, 41);
 
 -- Update rental table DVDCopyId to match new ID's from the DVD_Copy table
 UPDATE Rental
 SET DVDCopyId = 11
-WHERE RentalId = 7 AND MemberId = 9
+WHERE RentalId = 7 AND MemberId = 9;
 
 UPDATE Rental
 SET DVDCopyId = 12
-WHERE RentalId = 8 AND MemberId = 8
+WHERE RentalId = 8 AND MemberId = 8;
 
 UPDATE Rental
 SET DVDCopyId = 31
-WHERE RentalId = 4 AND MemberId = 5
+WHERE RentalId = 4 AND MemberId = 5;
 
 UPDATE Rental
 SET DVDCopyId = 32
-WHERE RentalId = 9 AND MemberId = 1
+WHERE RentalId = 9 AND MemberId = 1;
 
 UPDATE Rental
 SET DVDCopyId = 41
-WHERE RentalId = 5 AND MemberId = 5
+WHERE RentalId = 5 AND MemberId = 5;
 
 UPDATE Rental
 SET DVDCopyId = 52
-WHERE RentalId = 10 AND MemberId = 15
+WHERE RentalId = 10 AND MemberId = 15;
 
 SELECT * FROM DVD_Copy
 SELECT * FROM DVD
