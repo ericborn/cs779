@@ -255,7 +255,7 @@ INNER JOIN Genre g ON g.GenreId = d.GenreId
 INNER JOIN Rating rat ON rat.RatingId = d.RatingId
 INNER JOIN MoviePersonRole mpr ON mpr.DVDId = d.DVDId
 INNER JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
-LEFT JOIN role ro ON ro.RoleId = mpr.RoleId
+INNER JOIN role ro ON ro.RoleId = mpr.RoleId 
 WHERE r.RentalId IN (SELECT RentalId FROM Rental WHERE RentalReturnedDate IS NULL AND RentalShippedDate IS NOT NULL)
 AND ro.RoleName = 'Director'
 ORDER BY DVDTitle
