@@ -329,24 +329,30 @@ SELECT TOP 3 GenreName, Rental_Count
 FROM cte_rental_counts;
 
 -- 12. RANK, GROUP BY
-SELECT ms.MembershipType, COUNT(m.MemberId) AS 'Count', 
-RANK() OVER(ORDER BY ms.MembershipType) AS Rank,
-DENSE_RANK() OVER(ORDER BY ms.MembershipType) AS 'Dense_Rank'
+-- Regular rank
+SELECT ms.MembershipType, COUNT(r.RentalId) AS 'Rental Count', 
+RANK() OVER(ORDER BY ms.MembershipType) AS 'Rank'
 FROM Membership ms
 JOIN Member m ON ms.MembershipId = m.MembershipId
 JOIN rental r ON r.MemberId = m.MemberId
-GROUP BY ms.MembershipType
+WHERE r.RentalShippedDate IS NOT NULL
+GROUP BY ms.MembershipType;
 
-SELECT ms.MembershipType, COUNT(r.MemberId) AS 'Count', 
-RANK() OVER(ORDER BY ms.MembershipType) AS Rank,
+-- Dense rank
+SELECT ms.MembershipType, COUNT(r.RentalId) AS 'Rental Count', 
 DENSE_RANK() OVER(ORDER BY ms.MembershipType) AS 'Dense_Rank'
 FROM Membership ms
 JOIN Member m ON ms.MembershipId = m.MembershipId
 JOIN rental r ON r.MemberId = m.MemberId
 WHERE r.RentalShippedDate IS NOT NULL
-GROUP BY ms.MembershipType
+GROUP BY ms.MembershipType;
 
-SELECT memberid, count(memberid)
-FROM rental
-WHERE RentalShippedDate IS NOT NULL
-group by memberid
+-- both ranks together
+SELECT ms.MembershipType, COUNT(r.RentalId) AS 'Rental Count',
+RANK() OVER(ORDER BY ms.MembershipType) AS 'Rank',
+DENSE_RANK() OVER(ORDER BY ms.MembershipType) AS 'Dense_Rank'
+FROM Membership ms
+JOIN Member m ON ms.MembershipId = m.MembershipId
+JOIN rental r ON r.MemberId = m.MemberId
+WHERE r.RentalShippedDate IS NOT NULL
+GROUP BY ms.MembershipType;
