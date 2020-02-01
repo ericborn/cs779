@@ -329,17 +329,24 @@ SELECT TOP 3 GenreName, Rental_Count
 FROM cte_rental_counts;
 
 -- 12. RANK, GROUP BY
-RANK() OVER (
-
-)
-
-SELECT ms.MembershipType, COUNT(ms.MembershipType)
-FROM Rental r
-INNER JOIN Member m ON m.MemberId = r.MemberId
-INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
-INNER JOIN DVD d ON d.DVDId = dc.DVDId
-INNER JOIN Membership ms ON ms.MembershipId = m.MemberId
+SELECT ms.MembershipType, COUNT(m.MemberId) AS 'Count', 
+RANK() OVER(ORDER BY ms.MembershipType) AS Rank,
+DENSE_RANK() OVER(ORDER BY ms.MembershipType) AS 'Dense_Rank'
+FROM Membership ms
+JOIN Member m ON ms.MembershipId = m.MembershipId
+JOIN rental r ON r.MemberId = m.MemberId
 GROUP BY ms.MembershipType
 
-SELECT * FROM Membership
-SELECT * FROM rental
+SELECT ms.MembershipType, COUNT(r.MemberId) AS 'Count', 
+RANK() OVER(ORDER BY ms.MembershipType) AS Rank,
+DENSE_RANK() OVER(ORDER BY ms.MembershipType) AS 'Dense_Rank'
+FROM Membership ms
+JOIN Member m ON ms.MembershipId = m.MembershipId
+JOIN rental r ON r.MemberId = m.MemberId
+WHERE r.RentalShippedDate IS NOT NULL
+GROUP BY ms.MembershipType
+
+SELECT memberid, count(memberid)
+FROM rental
+WHERE RentalShippedDate IS NOT NULL
+group by memberid
