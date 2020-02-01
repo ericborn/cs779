@@ -239,12 +239,12 @@ INNER JOIN MoviePersonRole mpr ON mpr.DVDId = d.DVDId
 INNER JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
 INNER JOIN role r ON r.RoleId = mpr.RoleId
 WHERE g.GenreName = 'Drama'
-ORDER BY d.DVDTitle
+ORDER BY d.DVDTitle;
 
 -- 7. IS NULL, composite restrictions, subqueries
--- subquery to find only rentals with no return date and a shipped date
--- Left join with Where filter to include directors
-SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', DVDTitle, 
+-- Subquery to find only rentals with no return date and a shipped date
+-- Where clause to include only directors
+SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', d.DVDTitle, 
 g.GenreName, rat.RatingName, CONCAT(mp.PersonFirstName, ' ', mp.PersonLastName) AS 'Director Name',
 r.DVDCopyId, r.RentalRequestDate, r.RentalShippedDate
 FROM Rental r
@@ -258,6 +258,27 @@ INNER JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
 INNER JOIN role ro ON ro.RoleId = mpr.RoleId 
 WHERE r.RentalId IN (SELECT RentalId FROM Rental WHERE RentalReturnedDate IS NULL AND RentalShippedDate IS NOT NULL)
 AND ro.RoleName = 'Director'
-ORDER BY DVDTitle
+ORDER BY DVDTitle;
 
 -- 8.
+-- !!! ISNT RETURNING A SINGLE ROW PER MEMBER!!!
+-- Note is to consider using top 1
+SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', d.DVDTitle,
+g.GenreName, rat.RatingName, r.DVDCopyId, RentalShippedDate
+FROM Rental r
+INNER JOIN Member m ON m.MemberId = r.MemberId
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+INNER JOIN Rating rat ON rat.RatingId = d.RatingId
+WHERE r.RentalShippedDate IN (SELECT MAX(RentalShippedDate) FROM Rental GROUP BY MemberId)
+
+-- Part 3
+-- 9. aggregates, joins, GROUP BY
+SELECT d.DVDTitle, g.GenreName, rat.RatingName, COUNT(d.DVDId) AS 'Rental Count'
+FROM Rental r
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+INNER JOIN Rating rat ON rat.RatingId = d.RatingId
+GROUP BY d.DVDTitle, g.GenreName, rat.RatingName, d.DVDId
