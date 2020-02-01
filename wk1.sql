@@ -261,17 +261,18 @@ AND ro.RoleName = 'Director'
 ORDER BY DVDTitle;
 
 -- 8.
--- !!! ISNT RETURNING A SINGLE ROW PER MEMBER!!!
--- Note is to consider using top 1
-SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', d.DVDTitle,
-g.GenreName, rat.RatingName, r.DVDCopyId, RentalShippedDate
-FROM Rental r
-INNER JOIN Member m ON m.MemberId = r.MemberId
-INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+-- List all the customers and the most recent DVD which they have rented
+SELECT TOP 1 WITH TIES 
+CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', d.DVDTitle,
+g.GenreName, rat.RatingName, r1.DVDCopyId, r1.RentalShippedDate
+FROM Rental r1
+INNER JOIN Member m ON m.MemberId = r1.MemberId
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r1.DVDCopyId
 INNER JOIN DVD d ON d.DVDId = dc.DVDId
 INNER JOIN Genre g ON g.GenreId = d.GenreId
 INNER JOIN Rating rat ON rat.RatingId = d.RatingId
-WHERE r.RentalShippedDate IN (SELECT MAX(RentalShippedDate) FROM Rental GROUP BY MemberId);
+WHERE r1.RentalShippedDate = (SELECT TOP 1 MAX(RentalShippedDate) FROM Rental r2 WHERE r2.MemberId = r1.MemberId GROUP BY MemberId)
+ORDER BY ROW_NUMBER() OVER (PARTITION BY r1.MemberId ORDER BY r1.RentalShippedDate DESC);
 
 -- Part 3
 -- 9. aggregates, joins, GROUP BY
@@ -364,7 +365,6 @@ FROM Payment p
 JOIN Member m ON p.MemberId = m.MemberId 
 JOIN Membership ms ON m.MembershipId = ms.MembershipId
 GROUP BY ROLLUP (ms.MembershipType);
-
 
 SELECT * 
 FROM Payment p
