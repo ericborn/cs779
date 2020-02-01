@@ -316,19 +316,30 @@ WHERE RentalReturnedDate IS NOT NULL
 GROUP BY d.DVDId, d.DVDTitle, g.GenreName, rat.RatingName;
 
 -- 11. Aggregates, TOP, Filtering within Having clause, CTE/Subquery
-
 WITH cte_rental_counts AS (
 SELECT g.GenreName, COUNT(d.DVDId) AS 'Rental_Count'
 FROM rental r
 INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 INNER JOIN DVD d ON d.DVDId = dc.DVDId
 INNER JOIN Genre g ON g.GenreId = d.GenreId
+WHERE RentalShippedDate >= DATEADD(YEAR, -5,GETDATE())
 GROUP BY g.GenreName, d.DVDId
 )
-SELECT GenreName, Rental_Count
-FROM cte_rental_counts
-WHERE (SELECT CAST(DATEDIFF(YEAR, RentalShippedDate, GETDATE()) AS INT) AS 'years' FROM Rental WHERE 'years' <= 5 AND 'years' IS NOT NULL) <= 5
+SELECT TOP 3 GenreName, Rental_Count
+FROM cte_rental_counts;
 
-SELECT DVDCopyId, CAST(DATEDIFF(YEAR, RentalShippedDate, GETDATE()) AS INT) AS 'test'
-FROM rental
-WHERE RentalShippedDate IS NOT NULL AND 'test' >= 1
+-- 12. RANK, GROUP BY
+RANK() OVER (
+
+)
+
+SELECT ms.MembershipType, COUNT(ms.MembershipType)
+FROM Rental r
+INNER JOIN Member m ON m.MemberId = r.MemberId
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Membership ms ON ms.MembershipId = m.MemberId
+GROUP BY ms.MembershipType
+
+SELECT * FROM Membership
+SELECT * FROM rental
