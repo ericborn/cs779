@@ -358,6 +358,14 @@ WHERE r.RentalShippedDate IS NOT NULL
 GROUP BY ms.MembershipType;
 
 -- 13. ROLLUP, CUBE
+SELECT COALESCE(ms.MembershipType, 'All Memberships') AS 'Membership Type',
+SUM(p.AmountPaid)AS 'Revenue Collected'
+FROM Payment p
+JOIN Member m ON p.MemberId = m.MemberId 
+JOIN Membership ms ON m.MembershipId = ms.MembershipId
+GROUP BY ROLLUP (ms.MembershipType);
+
+
 SELECT * 
 FROM Payment p
 JOIN Member m ON p.MemberId = m.MemberId 
