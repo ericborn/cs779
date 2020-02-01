@@ -356,3 +356,9 @@ JOIN Member m ON ms.MembershipId = m.MembershipId
 JOIN rental r ON r.MemberId = m.MemberId
 WHERE r.RentalShippedDate IS NOT NULL
 GROUP BY ms.MembershipType;
+
+-- 13. ROLLUP, CUBE
+SELECT * 
+FROM Payment p
+JOIN Member m ON p.MemberId = m.MemberId 
+JOIN Membership ms ON m.MembershipId = ms.MembershipId
