@@ -271,7 +271,7 @@ INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 INNER JOIN DVD d ON d.DVDId = dc.DVDId
 INNER JOIN Genre g ON g.GenreId = d.GenreId
 INNER JOIN Rating rat ON rat.RatingId = d.RatingId
-WHERE r.RentalShippedDate IN (SELECT MAX(RentalShippedDate) FROM Rental GROUP BY MemberId)
+WHERE r.RentalShippedDate IN (SELECT MAX(RentalShippedDate) FROM Rental GROUP BY MemberId);
 
 -- Part 3
 -- 9. aggregates, joins, GROUP BY
@@ -281,35 +281,54 @@ INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 INNER JOIN DVD d ON d.DVDId = dc.DVDId
 INNER JOIN Genre g ON g.GenreId = d.GenreId
 INNER JOIN Rating rat ON rat.RatingId = d.RatingId
-GROUP BY d.DVDTitle, g.GenreName, rat.RatingName, d.DVDId
+GROUP BY d.DVDTitle, g.GenreName, rat.RatingName, d.DVDId;
 
 -- 10. aggregates, date differences, grouping
 -- Updates to the rental table with fake dvd return dates
 UPDATE rental
 SET RentalReturnedDate = GETDATE()
-WHERE RentalId = 4
+WHERE RentalId = 4;
 
 UPDATE rental
 SET RentalReturnedDate = '20191031'
-WHERE RentalId = 5
+WHERE RentalId = 5;
 
 UPDATE rental
 SET RentalReturnedDate = '20190315'
-WHERE RentalId = 7
+WHERE RentalId = 7;
 
 UPDATE rental
 SET RentalReturnedDate = '20190401'
-WHERE RentalId = 8
+WHERE RentalId = 8;
 
 UPDATE rental
 SET RentalReturnedDate = '20190225'
-WHERE RentalId = 9
+WHERE RentalId = 9;
 
 -- use average on datediff between shipped and returned date to find the average rental days
-SELECT AVG(DATEDIFF(DAY, RentalShippedDate, RentalReturnedDate)) AS 'Avg Rental days'
+SELECT d.DVDId, d.DVDTitle, g.GenreName, rat.RatingName, AVG(DATEDIFF(DAY, RentalShippedDate, RentalReturnedDate)) AS 'Avg Rental days'
 FROM rental r
 INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 INNER JOIN DVD d ON d.DVDId = dc.DVDId
 INNER JOIN Genre g ON g.GenreId = d.GenreId
 INNER JOIN Rating rat ON rat.RatingId = d.RatingId
 WHERE RentalReturnedDate IS NOT NULL
+GROUP BY d.DVDId, d.DVDTitle, g.GenreName, rat.RatingName;
+
+-- 11. Aggregates, TOP, Filtering within Having clause, CTE/Subquery
+
+WITH cte_rental_counts AS (
+SELECT g.GenreName, COUNT(d.DVDId) AS 'Rental_Count'
+FROM rental r
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+GROUP BY g.GenreName, d.DVDId
+)
+SELECT GenreName, Rental_Count
+FROM cte_rental_counts
+WHERE (SELECT CAST(DATEDIFF(YEAR, RentalShippedDate, GETDATE()) AS INT) AS 'years' FROM Rental WHERE 'years' <= 5 AND 'years' IS NOT NULL) <= 5
+
+SELECT DVDCopyId, CAST(DATEDIFF(YEAR, RentalShippedDate, GETDATE()) AS INT) AS 'test'
+FROM rental
+WHERE RentalShippedDate IS NOT NULL AND 'test' >= 1
