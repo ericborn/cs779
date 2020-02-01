@@ -262,6 +262,7 @@ ORDER BY DVDTitle;
 
 -- 8.
 -- List all the customers and the most recent DVD which they have rented
+-- Using top 1 with ties to eliminate extra rows present for members who rented two dvd's on the same day
 SELECT TOP 1 WITH TIES 
 CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', d.DVDTitle,
 g.GenreName, rat.RatingName, r1.DVDCopyId, r1.RentalShippedDate
@@ -276,6 +277,7 @@ ORDER BY ROW_NUMBER() OVER (PARTITION BY r1.MemberId ORDER BY r1.RentalShippedDa
 
 -- Part 3
 -- 9. aggregates, joins, GROUP BY
+-- Accomplished with count and group by
 SELECT d.DVDTitle, g.GenreName, rat.RatingName, COUNT(d.DVDId) AS 'Rental Count'
 FROM Rental r
 INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
@@ -317,6 +319,7 @@ WHERE RentalReturnedDate IS NOT NULL
 GROUP BY d.DVDId, d.DVDTitle, g.GenreName, rat.RatingName;
 
 -- 11. Aggregates, TOP, Filtering within Having clause, CTE/Subquery
+-- CTE where the rental shipped date is greater than or equal to 5 years ago from the current date
 WITH cte_rental_counts AS (
 SELECT g.GenreName, COUNT(d.DVDId) AS 'Rental_Count'
 FROM rental r
@@ -359,14 +362,13 @@ WHERE r.RentalShippedDate IS NOT NULL
 GROUP BY ms.MembershipType;
 
 -- 13. ROLLUP, CUBE
+-- Use COALESCE to name the total row, sum on amount paid with rollup on membership type
 SELECT COALESCE(ms.MembershipType, 'All Memberships') AS 'Membership Type',
-SUM(p.AmountPaid)AS 'Revenue Collected'
+SUM(p.AmountPaid) AS 'Revenue Collected',
+SUM(p.AmountPaid) / (SELECT LEFT(MembershipType,1))  AS 'RevenuePerDVD'
 FROM Payment p
 JOIN Member m ON p.MemberId = m.MemberId 
 JOIN Membership ms ON m.MembershipId = ms.MembershipId
 GROUP BY ROLLUP (ms.MembershipType);
 
-SELECT * 
-FROM Payment p
-JOIN Member m ON p.MemberId = m.MemberId 
-JOIN Membership ms ON m.MembershipId = ms.MembershipId
+-- 14. Pivot
