@@ -242,13 +242,22 @@ WHERE g.GenreName = 'Drama'
 ORDER BY d.DVDTitle
 
 -- 7. IS NULL, composite restrictions, subqueries
-SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Member', DVDTitle
+-- subquery to find only rentals with no return date and a shipped date
+-- Left join with Where filter to include directors
+SELECT CONCAT(m.MemberFirstName, ' ', m.memberLastName) AS 'Members name', DVDTitle, 
+g.GenreName, rat.RatingName, CONCAT(mp.PersonFirstName, ' ', mp.PersonLastName) AS 'Director Name',
+r.DVDCopyId, r.RentalRequestDate, r.RentalShippedDate
 FROM Rental r
-JOIN Member m ON m.MemberId = r.MemberId
-JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
-JOIN DVD d ON d.DVDId = dc.DVDCopyId
-WHERE 
+INNER JOIN Member m ON m.MemberId = r.MemberId
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+INNER JOIN Rating rat ON rat.RatingId = d.RatingId
+INNER JOIN MoviePersonRole mpr ON mpr.DVDId = d.DVDId
+INNER JOIN MoviePerson mp ON mp.PersonId = mpr.PersonId
+LEFT JOIN role ro ON ro.RoleId = mpr.RoleId
+WHERE r.RentalId IN (SELECT RentalId FROM Rental WHERE RentalReturnedDate IS NULL AND RentalShippedDate IS NOT NULL)
+AND ro.RoleName = 'Director'
+ORDER BY DVDTitle
 
-SELECT * FROM DVD
-rental
-Member
+-- 8.
