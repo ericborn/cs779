@@ -372,3 +372,10 @@ JOIN Membership ms ON m.MembershipId = ms.MembershipId
 GROUP BY ROLLUP (ms.MembershipType);
 
 -- 14. Pivot
+SELECT DISTINCT g.GenreName, DATEPART(YEAR,r.RentalShippedDate) AS 'Rental Year'
+FROM rental r
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+WHERE RentalShippedDate IS NOT NULL
+GROUP BY g.GenreName, r.RentalShippedDate
