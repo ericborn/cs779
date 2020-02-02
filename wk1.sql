@@ -1,3 +1,10 @@
+/*
+Eric Born
+CS779
+1 Feb 2020
+Homework wk. 1
+*/
+
 USE NetFlix
 
 -- 1. Adding and populating columns, SQL string operators
@@ -380,9 +387,50 @@ SELECT * FROM (
 	INNER JOIN DVD d ON d.DVDId = dc.DVDId
 	INNER JOIN Genre g ON g.GenreId = d.GenreId
 	WHERE RentalShippedDate IS NOT NULL
-	--GROUP BY g.GenreName, DATEPART(YEAR,r.RentalShippedDate)
 ) t
 PIVOT(
 	COUNT(GenreName)
 	FOR GenreName IN (Comedy,Drama,Horror,Western)
 ) AS pivot_table;
+
+
+-- 15. Rentals by genre by month
+-- There isnt a movie in the romance genre so I added one
+INSERT INTO DVD(DVDId,DVDTitle,GenreId,RatingId,DVDReleaseDate, TheaterReleaseDate)
+VALUES (8,'Last Christmas',11,3,'10/17/2000','05/08/1983');
+
+-- Insert copies into dvd_copy
+INSERT INTO DVD_Copy(DVDId)
+VALUES(8),(8),(8),(8),(8),(8),(8),(8),(8),(8)
+
+-- Set copies available for rent
+UPDATE DVD_Copy
+SET DVDQtyOnHand = 1
+WHERE DVDId = 8
+
+-- Insert rentals for the romance DVD
+INSERT INTO Rental
+VALUES
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,1,62,'20190202', '20190203', '20190205'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,2,63,'20190203', '20190204', '20190215'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,3,64,'20190204', '20190205', '20190213'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,4,65,'20190201', '20190206', '20190212'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,5,66,'20190202', '20190207', '20190210'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,6,67,'20190201', '20190208', '20190221'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,7,68,'20190202', '20190209', '20190222'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,8,69,'20190202', '20190210', '20190222'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,9,70,'20190206', '20190211', '20190221'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,10,71,'20190210', '20190212', '20190225'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,11,72,'20190202', '20190213', '20190225'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,12,73,'20190203', '20190214', '20190225'),
+(NEXT VALUE FOR dbo.DVDCopyId_Seq,13,74,'20190202', '20190215', '20190225')
+
+-- Selects genre, month, year and total rentals
+SELECT g.GenreName, DATEPART(MONTH,r.RentalShippedDate) AS 'RentalMonth', 
+	   DATEPART(YEAR,r.RentalShippedDate) AS 'RentalYear', COUNT(g.GenreName) AS 'Total Rentals'
+FROM rental r
+INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+INNER JOIN DVD d ON d.DVDId = dc.DVDId
+INNER JOIN Genre g ON g.GenreId = d.GenreId
+WHERE RentalShippedDate IS NOT NULL AND RentalShippedDate >= DATEADD(YEAR, -3,GETDATE())
+GROUP BY g.GenreName, DATEPART(MONTH,r.RentalShippedDate), DATEPART(YEAR,r.RentalShippedDate)
