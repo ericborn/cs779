@@ -14,6 +14,11 @@ RentalShippedDate,
 RentalReturnedDate
 
 )
+
+-- insert movie at beginning, middle and the end of the queue
+
+
+
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 
 -- 3. Trigger for updating RentalHistory table RentalShippedDate column when dvd sent to customer
