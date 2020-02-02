@@ -372,10 +372,17 @@ JOIN Membership ms ON m.MembershipId = ms.MembershipId
 GROUP BY ROLLUP (ms.MembershipType);
 
 -- 14. Pivot
-SELECT DISTINCT g.GenreName, DATEPART(YEAR,r.RentalShippedDate) AS 'Rental Year'
-FROM rental r
-INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
-INNER JOIN DVD d ON d.DVDId = dc.DVDId
-INNER JOIN Genre g ON g.GenreId = d.GenreId
-WHERE RentalShippedDate IS NOT NULL
-GROUP BY g.GenreName, r.RentalShippedDate
+-- Select statement grabs the genre and year then pivots on the count of rentals per genre
+SELECT * FROM (
+	SELECT g.GenreName, DATEPART(YEAR,r.RentalShippedDate) AS 'RentalYear'
+	FROM rental r
+	INNER JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+	INNER JOIN DVD d ON d.DVDId = dc.DVDId
+	INNER JOIN Genre g ON g.GenreId = d.GenreId
+	WHERE RentalShippedDate IS NOT NULL
+	--GROUP BY g.GenreName, DATEPART(YEAR,r.RentalShippedDate)
+) t
+PIVOT(
+	COUNT(GenreName)
+	FOR GenreName IN (Comedy,Drama,Horror,Western)
+) AS pivot_table;
