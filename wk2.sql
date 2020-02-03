@@ -30,8 +30,7 @@ RentalReturnedDate DATETIME
 
 
 -- 2. Prevent deletions from RentalHistory to prevent deletions
-CREATE OR REPLACE TRIGGER Trig_Rental_hist_delete
-BEFORE DELETE ON RentalHistory
+CREATE OR ALTER TRIGGER Trig_Rental_hist_delete ON RentalHistory
 BEGIN
 	raise_application_error(-20001,'Records can not be deleted')
 	dbms_output.put_line( 'Records can not be deleted')
