@@ -120,10 +120,37 @@ SELECT * FROM DVDView WHERE Genre = 'Horror' AND Rating = 'R';
 -- Updated
 -- Created an indexed view to work around the joins
 -- Rewrote the query with explicit joins.
-CREATE OR ALTER VIEW dbo.director_view
+CREATE OR ALTER VIEW dbo.DVDView
 WITH SCHEMABINDING
 AS
 SELECT DVDId, DVDTitle, g.GenreName AS Genre, r.RatingName AS Rating
-FROM DVD d
-JOIN Genre g ON d.GenreId = g.GenreId
-JOIN Rating r ON r.RatingId = d.RatingId
+FROM dbo.DVD d
+JOIN dbo.Genre g ON d.GenreId = g.GenreId
+JOIN dbo.Rating r ON r.RatingId = d.RatingId
+
+-- Added indexes on dvd title and director name columns
+CREATE UNIQUE CLUSTERED INDEX UCIDX_DVDID ON DVDView(DVDId)
+CREATE NONCLUSTERED INDEX UCIDX_genre ON DVDView(Genre)
+
+SELECT * FROM DVDView WITH(NOEXPAND) WHERE Genre = 'Horror' AND Rating = 'R';
+
+-- 7.
+-- Created a way to dynamically find the highest current id and start the sequence from there
+-- Replace the count(*) with a sequence
+--SELECT COUNT(*)+1 FROM Payment
+
+-- create a variable to store the max payment id 
+DECLARE @payid INT = 0;
+
+-- Find the highest payment Id then add 1
+SET @payid = (SELECT MAX(paymentid)+1 FROM Payment);
+
+-- Create a variable to store the SQL command to create the sequence
+DECLARE @sql NVARCHAR(MAX)
+
+-- Creates a sequence which will be used to increment the Payment table
+SET @sql = 'CREATE SEQUENCE dbo.PaymentId_Seq
+AS [BIGINT]
+START WITH ' + CONVERT(NVARCHAR(10), @payid) +
+'INCREMENT BY 1'
+EXEC(@sql)
