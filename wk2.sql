@@ -19,10 +19,17 @@ INCREMENT BY 1;
 -- Create a rental history table
 CREATE TABLE RentalHistory (
 RentalHistoryId NUMERIC(12,0),
+RentalId NUMERIC(12,0),
 MemberId NUMERIC(12,0),
-DVDIdCopy NUMERIC(16,0),
+DVDId NUMERIC(16,0),
+ZipcodeId VARCHAR(5),
+DVDTitle VARCHAR(100),
+GenreName VARCHAR(20),
+RentalRequestDate DATETIME,
 RentalShippedDate DATETIME,
-RentalReturnedDate DATETIME
+RentalReturnedDate DATETIME,
+MembershipType VARCHAR(128),
+MemberSinceDate DATETIME
 );
 
 -- insert movie at beginning, middle and the end of the queue
