@@ -42,7 +42,74 @@ CREATE NONCLUSTERED INDEX UCIDX_director_name ON director_view(Director_Name)
 SELECT * FROM director_view WITH(NOEXPAND);
 
 -- 2.
+SET STATISTICS IO ON
+SET STATISTICS TIME ON
+
+-- old query with NOT IN
 SELECT DVDTitle AS 'DVD Title'
 FROM DVD 
 WHERE DVDId NOT IN 
 	 (SELECT DISTINCT DVDId FROM Rental WHERE MemberId = 123);
+
+-- new query using NOT EXISTS
+SELECT DVDTitle AS 'DVD Title'
+FROM DVD 
+WHERE NOT EXISTS 
+	 (SELECT DISTINCT DVDId FROM Rental WHERE MemberId = 123);
+
+-- 3.
+-- Suggested an index on DVDId in the Rental table
+SELECT DVDId, DVDTitle AS 'DVD Title'
+FROM DVD
+WHERE DVDId IN (SELECT DVDId FROM Rental 
+				WHERE RentalReturnedDate IS NULL);
+
+SELECT DVDId, DVDTitle AS 'DVD Title'
+FROM DVD
+WHERE EXISTS (SELECT DVDId FROM Rental 
+				WHERE RentalReturnedDate IS NULL);
+
+-- 4.
+SELECT  CONCAT(SUBSTRING(m.MemberFirstName,1,10),
+		SUBSTRING(m.MemberLastName,1,10)) AS 'Name',
+		SUBSTRING(m.MemberAddress,1,30) AS 'Address', 
+		SUBSTRING(c.CityName,1,12) AS 'City',
+		SUBSTRING(s.StateName,1,12) AS 'State',
+		z.ZipCode AS 'Zip'
+FROM Member m
+INNER JOIN ZipCode z ON z.ZipCodeId = m.MemberAddressId
+INNER JOIN City c ON c.CityId = z.CityId
+INNER JOIN State s ON s.StateId = z.StateId  
+WHERE m.MemberFirstName = 'Yong'
+AND m.MemberLastName = 'Lee' 
+AND m.MemberAddressId = z.ZipCodeId
+AND z.CityId = c.CityId
+AND z.StateId = s.StateId;
+
+-- 5.
+SELECT DISTINCT DVD.DVDId, DVD.DVDTitle, Genre.GenreName 
+FROM Rental, DVD, Genre
+WHERE MemberId = 
+(SELECT MemberId FROM Member
+WHERE MemberFirstName = 'Alfred'
+AND MemberLastName = 'Newman')
+	AND Rental.DVDId = DVD.DVDId
+AND DVD.GenreId = Genre.GenreId
+	AND Genre.GenreName = 'Horror';
+
+SELECT DISTINCT d.DVDId, d.DVDTitle, g.GenreName 
+FROM Rental r
+INNER JOIN Member m ON r.MemberId = m.MemberId
+INNER JOIN dvd d ON d.DVDId = r.DVDId
+INNER JOIN genre g ON g.GenreId = d.GenreId
+WHERE m.MemberFirstName = 'Alfred'
+  AND m.MemberLastName = 'Newman' 
+  AND g.GenreName = 'Horror';
+
+-- 6.
+CREATE VIEW DVDView AS 
+SELECT DVDId, DVDTitle, Genre.GenreName AS Genre, 
+	Rating.RatingName AS Rating
+FROM DVD, Genre, Rating 
+WHERE DVD.GenreId = Genre.GenreId
+AND DVD.RatingId = Rating.RatingId;
