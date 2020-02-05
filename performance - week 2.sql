@@ -42,3 +42,7 @@ CREATE NONCLUSTERED INDEX UCIDX_director_name ON director_view(Director_Name)
 SELECT * FROM director_view WITH(NOEXPAND);
 
 -- 2.
+SELECT DVDTitle AS 'DVD Title'
+FROM DVD 
+WHERE DVDId NOT IN 
+	 (SELECT DISTINCT DVDId FROM Rental WHERE MemberId = 123);
