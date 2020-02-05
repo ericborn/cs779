@@ -21,6 +21,7 @@ CREATE TABLE RentalHistory (
 RentalHistoryId NUMERIC(12,0),
 RentalId NUMERIC(12,0),
 MemberId NUMERIC(12,0),
+DVDCopyId NUMERIC(16,0),
 DVDId NUMERIC(16,0),
 ZipcodeId VARCHAR(5),
 DVDTitle VARCHAR(100),
@@ -29,12 +30,20 @@ RentalRequestDate DATETIME,
 RentalShippedDate DATETIME,
 RentalReturnedDate DATETIME,
 MembershipType VARCHAR(128),
-MemberSinceDate DATETIME
+MemberSinceDate DATETIME,
+QueuePosition SMALLINT
 );
 
+SELECT * FROM RentalHistory
+
 -- insert movie at beginning, middle and the end of the queue
-
-
+SELECT 
+RentalId, RentalId, MemberId, DVDCopyId,
+DVDId, ZipcodeId, DVDTitle, GenreName, RentalRequestDate,
+RentalShippedDate, RentalReturnedDate, MembershipType,
+MemberSinceDate, QueuePosition
+FROM Rental r
+JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 CREATE OR ALTER TRIGGER Trig_Rental_hist_delete ON RentalHistory
