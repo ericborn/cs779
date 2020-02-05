@@ -1,3 +1,10 @@
+/*
+Eric Born
+CS779
+5 Feb 2020
+Performance tuning wk. 2
+*/
+
 -- Assignment 2, Part B
 -- 1.
 -- Original query
@@ -86,7 +93,33 @@ AND m.MemberAddressId = z.ZipCodeId
 AND z.CityId = c.CityId
 AND z.StateId = s.StateId;
 
+-- Create a view for the address label report
+CREATE OR ALTER VIEW AddressLabel_view
+WITH SCHEMABINDING AS
+SELECT  m.MemberId,
+		CONCAT(SUBSTRING(m.MemberFirstName,1,10), ' ',
+		SUBSTRING(m.MemberLastName,1,10)) AS 'Name',
+		SUBSTRING(m.MemberAddress,1,30) AS 'Address', 
+		SUBSTRING(c.CityName,1,12) AS 'City',
+		SUBSTRING(s.StateName,1,12) AS 'State',
+		z.ZipCode AS 'Zip'
+FROM dbo.Member m
+INNER JOIN dbo.ZipCode z ON z.ZipCodeId = m.MemberAddressId
+INNER JOIN dbo.City c ON c.CityId = z.CityId
+INNER JOIN dbo.State s ON s.StateId = z.StateId  
+WHERE m.MemberAddressId = z.ZipCodeId
+AND z.CityId = c.CityId
+AND z.StateId = s.StateId;
+
+-- Create an index
+CREATE UNIQUE CLUSTERED INDEX UCIDX_MemberId ON AddressLabel_view(MemberId)
+
+-- Select from the view
+SELECT * FROM AddressLabel_view WITH(NOEXPAND) WHERE Address = '101 Will Street';
+
+
 -- 5.
+-- Original
 SELECT DISTINCT DVD.DVDId, DVD.DVDTitle, Genre.GenreName 
 FROM Rental, DVD, Genre
 WHERE MemberId = 
@@ -97,6 +130,7 @@ AND MemberLastName = 'Newman')
 AND DVD.GenreId = Genre.GenreId
 	AND Genre.GenreName = 'Horror';
 
+-- Updated
 SELECT DISTINCT d.DVDId, d.DVDTitle, g.GenreName 
 FROM Rental r
 INNER JOIN Member m ON r.MemberId = m.MemberId
