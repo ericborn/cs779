@@ -107,9 +107,23 @@ WHERE m.MemberFirstName = 'Alfred'
   AND g.GenreName = 'Horror';
 
 -- 6.
-CREATE VIEW DVDView AS 
+-- Original
+CREATE OR ALTER VIEW DVDView AS
 SELECT DVDId, DVDTitle, Genre.GenreName AS Genre, 
 	Rating.RatingName AS Rating
 FROM DVD, Genre, Rating 
 WHERE DVD.GenreId = Genre.GenreId
 AND DVD.RatingId = Rating.RatingId;
+
+SELECT * FROM DVDView WHERE Genre = 'Horror' AND Rating = 'R';
+
+-- Updated
+-- Created an indexed view to work around the joins
+-- Rewrote the query with explicit joins.
+CREATE OR ALTER VIEW dbo.director_view
+WITH SCHEMABINDING
+AS
+SELECT DVDId, DVDTitle, g.GenreName AS Genre, r.RatingName AS Rating
+FROM DVD d
+JOIN Genre g ON d.GenreId = g.GenreId
+JOIN Rating r ON r.RatingId = d.RatingId
