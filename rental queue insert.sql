@@ -27,7 +27,7 @@ DECLARE @member_id NUMERIC(12,0),
 
 	SELECT @member_id = 1,
 		   @dvd_id = 6,
-		   @queue_position = 7
+		   @queue_position = 100
 
 	SET @queue_max = (SELECT MAX(QueuePosition) FROM RentalQueue WHERE MemberId = @member_id)
 	
@@ -40,44 +40,20 @@ DECLARE @member_id NUMERIC(12,0),
 --PRINT @queue_min
 --PRINT @queue_max
 
--- if the selected queue position is less than 1 or greater than 1 over the highest queue value, throw an error
---IF (@queue_position < 1 OR @queue_position > @queue_maxPlus)
---	BEGIN
---		RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxPlus)
---	END;
---ELSE
---	PRINT('Number is fine');
-
---	IF @queue_position = @queue_maxPlus
---		BEGIN
---			PRINT 'INSERT AT MAX QUEUE POSITION';
---			INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
---			VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
---		END;
---	ELSE
---		BEGIN
---			PRINT 'REORDER QUEUE THEN INSERT';
---			UPDATE RentalQueue
---			SET QueuePosition = QueuePosition + 1
---			WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
-
---			INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
---			VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
---		END;
-------------------------------------------------------------------------
-
+-- If the selected queue position is greater than 0 or less than or equal to 1 
+-- greater than the highest queue value proceed with the insert. Otherwise raise an error
 IF (@queue_position > 0 AND @queue_position <= @queue_maxPlus)
 	BEGIN
 		PRINT('Number is fine');
 		IF @queue_position = @queue_maxPlus
 			BEGIN
-				PRINT 'INSERT AT MAX QUEUE POSITION';
+				--Insert at max queue position
 				INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
 				VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
 			END;
 		ELSE
 			BEGIN
-				PRINT 'REORDER QUEUE THEN INSERT';
+				-- Reorder queue then insert
 				UPDATE RentalQueue
 				SET QueuePosition = QueuePosition + 1
 				WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
