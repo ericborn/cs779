@@ -57,12 +57,13 @@ IF (@queue_position > 0 AND @queue_position <= @queue_maxPlus)
 				UPDATE RentalQueue
 				SET QueuePosition = QueuePosition + 1
 				WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
-
+				 -- Insert new queue row
 				INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
 				VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
 			END;
 		END;
-ELSE RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxPlus);
+ELSE 
+	RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxPlus);
 
 SELECT * FROM RentalQueue
 WHERE MemberId = 1
