@@ -169,13 +169,52 @@ VALUES (1, 1, GETDATE(), 1),
 SELECT * FROM RentalQueue
 WHERE MemberId = 1
 
+------- START TESTING
+DECLARE @member_id NUMERIC(12,0),
+		@dvd_id NUMERIC(16,0),
+		@queue_position SMALLINT,
+		@queue_max SMALLINT,
+		@queue_maxPlus SMALLINT
+
+	SELECT @member_id = 1,
+		   @dvd_id = 6,
+		   @queue_position = 3
+
+	SET @queue_max = (SELECT MAX(QueuePosition) FROM RentalQueue WHERE MemberId = @member_id)
+	
+	-- set @queue_maxP to max + 1 to track maximum queue values range
+	SET @queue_maxPlus = @queue_max + 1
+
+PRINT @member_id
+PRINT @dvd_id
+PRINT @queue_position
+--PRINT @queue_min
+PRINT @queue_max
+
+-- if the selected queue position is less than 1 or greater than 1 over the highest queue value, throw an error
+IF (@queue_position < 1 OR @queue_position >= @queue_maxPlus)
+BEGIN
+	RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxPlus)
+END	
+ELSE
+	PRINT('Number is fine')
+
+	IF @queue_position = @queue_maxPlus
+		PRINT 'INSERT AT MAX QUEUE POSITION'
+		INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+		VALUES (@member_id, @dvd_id, GETDATE(), @queue_position)
+	ELSE
+		PRINT 'INSERT AND REORDER QUEUE'
+------- END TESTING
+
 CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
 	@member_id NUMERIC(12,0),
 	@dvd_id NUMERIC(16,0),
 	@queue_position SMALLINT,
 	@queue_min SMALLINT,
 	@queue_max SMALLINT,
-	@current_row SMALLINT
+	@current_row SMALLINT,
+	@queue_maxP SMALLINT
 AS
 BEGIN
 IF (@queue_position < 1 OR @queue_position > @queue_max+1)
@@ -204,7 +243,7 @@ ELSE
 	
 	IF @queue_position = @queue_maxP
 	-- Just insert because its the last one
-	INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, QueuePosition)
+	INSERT INTO RentalQueue(RentalId, MemberId, DVDCopyId, RentalRequestDate, QueuePosition)
 	VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @member_id, @dvd_id, GETDATE(), @queue_position)
 
 	ELSE
