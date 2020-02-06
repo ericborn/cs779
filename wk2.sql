@@ -71,14 +71,6 @@ JOIN Member m ON m.MemberId = r.MemberId
 JOIN Membership ms ON m.MembershipId = ms.MembershipId
 JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId;
 
---SELECT * FROM RentalHistory
-
---SELECT * FROM Rental
---WHERE RentalRequestDate < '20190203'
-
---SELECT * FROM DVD d
---INNER JOIN rating r ON d.RatingId = r.RatingId;
-
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 CREATE TRIGGER Trig_Rental_hist_delete
 ON dbo.RentalHistory
@@ -90,8 +82,6 @@ END;
 
 DELETE FROM RentalHistory
 WHERE RentalHistoryId = 4
-
--- insert movie at beginning, middle and the end of the queue
 
 -- 3. Trigger for updating RentalHistory table RentalShippedDate column when dvd sent to customer
 CREATE TRIGGER Trig_Rental_hist_ship_update
@@ -127,8 +117,6 @@ FROM Rental r
 JOIN RentalHistory rh ON rh.RentalId = r.RentalId
 WHERE r.RentalId = 10;
 
-
-
 -- 4. Trigger for updating RentalHistory table RentalReturnedDate column when dvd received back from customer
 CREATE TRIGGER Trig_Rental_hist_ship_returned
 ON dbo.Rental
@@ -162,8 +150,26 @@ FROM Rental r
 JOIN RentalHistory rh ON rh.RentalId = r.RentalId
 WHERE r.RentalId = 10;
 
-
 -- 5. 
+-- Insert movie at beginning, middle and the end of the queue
 -- Code to expand RentalQueue to include queue position
-ALTER TABLE RentalQueue
-ADD QueuePosition SMALLINT;
+
+-- Insert some rental records with a queue position
+INSERT INTO rental (RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate, RentalReturnedDate, QueuePosition)
+VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE(), NULL, NULL, 1),
+	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 20, GETDATE(), NULL, NULL, 2),
+	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 30, GETDATE(), NULL, NULL, 3),
+	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 40, GETDATE(), NULL, NULL, 4),
+	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 50, GETDATE(), NULL, NULL, 5);
+
+SELECT * FROM Rental
+WHERE MemberId = 1
+
+CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
+	@member_id NUMERIC(12,0),
+	@dvd_id NUMERIC(16,0),
+	@queue_position SMALLINT
+AS
+BEGIN
+
+
