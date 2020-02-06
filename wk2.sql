@@ -34,16 +34,49 @@ MemberSinceDate DATETIME,
 QueuePosition SMALLINT
 );
 
-SELECT * FROM RentalHistory
+-- alter statements to add genrename, ratingname and description to the DVD table
+ALTER TABLE DVD
+ADD GenreName VARCHAR(20),
+	RatingName VARCHAR(10),
+	RatingDescription VARCHAR(255);
 
--- insert movie at beginning, middle and the end of the queue
-SELECT 
-RentalId, RentalId, MemberId, DVDCopyId,
-DVDId, ZipcodeId, DVDTitle, GenreName, RentalRequestDate,
-RentalShippedDate, RentalReturnedDate, MembershipType,
-MemberSinceDate, QueuePosition
+-- set genre name within DVD
+UPDATE DVD
+SET GenreName = g.GenreName
+FROM DVD AS d
+INNER JOIN genre g ON d.GenreId = g.GenreId;
+
+-- set RatingName and Description within DVD
+UPDATE DVD
+SET RatingName = r.RatingName,
+	RatingDescription = r.RatingDescription
+FROM DVD AS d
+INNER JOIN rating r ON d.RatingId = r.RatingId;
+
+SELECT * FROM DVD d
+INNER JOIN rating r ON d.RatingId = r.RatingId;
+
+
+SELECT * FROM Rental
+WHERE RentalRequestDate < '20190203'
+
+-- Add a queue position to the rental table
+ALTER TABLE rental
+ADD QueuePosition SMALLINT;
+
+INSERT INTO RentalHistory
+SELECT
+NEXT VALUE FOR RentalHistoryId, r.RentalId, r.MemberId, r.DVDCopyId,
+DC.DVDId, z.ZipcodeId, d.DVDTitle, d.GenreName, r.RentalRequestDate,
+r.RentalShippedDate, r.RentalReturnedDate, ms.MembershipType,
+m.MemberSinceDate, QueuePosition
 FROM Rental r
 JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
+JOIN DVD d ON d.DVDId = dc.DVDId
+JOIN Member m ON m.MemberId = r.MemberId
+JOIN Membership ms ON m.MembershipId = ms.MembershipId
+JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId
+WHERE RentalRequestDate < '20190203'
 
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 CREATE OR ALTER TRIGGER Trig_Rental_hist_delete ON RentalHistory
@@ -52,9 +85,11 @@ BEGIN
 	dbms_output.put_line( 'Records can not be deleted')
 END;
 
+-- insert movie at beginning, middle and the end of the queue
 
 -- 3. Trigger for updating RentalHistory table RentalShippedDate column when dvd sent to customer
 -- trigger should probably be placed on rental table update
+
 
 -- 4. Trigger for updating RentalHistory table RentalReturnedDate column when dvd received back from customer
 
