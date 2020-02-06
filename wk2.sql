@@ -77,7 +77,7 @@ ON dbo.RentalHistory
 INSTEAD OF DELETE
 AS
 BEGIN
-	RAISERROR('Deletions not allowed from this table', 16,1)
+	RAISERROR('Deletions not allowed from this table', 11,1)
 END;
 
 DELETE FROM RentalHistory
@@ -168,8 +168,30 @@ WHERE MemberId = 1
 CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
 	@member_id NUMERIC(12,0),
 	@dvd_id NUMERIC(16,0),
-	@queue_position SMALLINT
+	@queue_position SMALLINT,
+	@queue_min SMALLINT,
+	@queue_max SMALLINT
 AS
 BEGIN
+IF (@queue_position < 1 OR @queue_position > @queue_max+1)
+BEGIN
+	RAISERROR('Error, please choose a queue positon between 1 and your highest queue plus 1',11,1)
+END
+ELSE
+	PRINT('Number is fine')
 
+-- setup variables to store the chosen queue position, the highest current queued item and that value +1
+DECLARE @queue_position SMALLINT = 6,
+		@queue_max SMALLINT = 5,
+		@queue_maxP SMALLINT;
 
+-- set @queue_maxP to max + 1 to track maximum queue values range
+SET @queue_maxP = @queue_max + 1
+
+-- if the selected queue position is less than 1 or greater than 1 over the highest queue value, throw an error
+IF (@queue_position < 1 OR @queue_position >= @queue_maxP)
+BEGIN
+	RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxP)
+END
+ELSE
+	PRINT('Number is fine')
