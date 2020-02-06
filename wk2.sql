@@ -5,34 +5,25 @@ CS779
 Homework wk. 2
 */
 
-SELECT * FROM Rental
-SELECT * FROM dvd
-
-
 -- 1.
--- Create a sequence for the rental history tables ID
-CREATE SEQUENCE RentalHistory_Seq
-AS INT
-START WITH 1
-INCREMENT BY 1;
-
+-- Not used since we're doing an insert into to create the table
 -- Create a rental history table
-CREATE TABLE RentalHistory (
-RentalHistoryId NUMERIC(12,0),
-RentalId NUMERIC(12,0),
-MemberId NUMERIC(12,0),
-DVDCopyId NUMERIC(16,0),
-DVDId NUMERIC(16,0),
-ZipcodeId VARCHAR(5),
-DVDTitle VARCHAR(100),
-GenreName VARCHAR(20),
-RentalRequestDate DATETIME,
-RentalShippedDate DATETIME,
-RentalReturnedDate DATETIME,
-MembershipType VARCHAR(128),
-MemberSinceDate DATETIME,
-QueuePosition SMALLINT
-);
+--CREATE TABLE RentalHistory (
+--RentalHistoryId NUMERIC(12,0) NOT NULL,
+--RentalId NUMERIC(12,0) NOT NULL,
+--MemberId NUMERIC(12,0) NOT NULL,
+--DVDCopyId NUMERIC(16,0) NOT NULL,
+--DVDId NUMERIC(16,0) NOT NULL,
+--ZipcodeId VARCHAR(5) NOT NULL,
+--DVDTitle VARCHAR(100) NOT NULL,
+--GenreName VARCHAR(20) NOT NULL,
+--RentalRequestDate DATETIME NOT NULL,
+--RentalShippedDate DATETIME NULL,
+--RentalReturnedDate DATETIME NULL,
+--MembershipType VARCHAR(128) NOT NULL,
+--MemberSinceDate DATETIME NOT NULL,
+--QueuePosition SMALLINT DEFAULT NULL
+--);
 
 -- alter statements to add genrename, ratingname and description to the DVD table
 ALTER TABLE DVD
@@ -53,35 +44,48 @@ SET RatingName = r.RatingName,
 FROM DVD AS d
 INNER JOIN rating r ON d.RatingId = r.RatingId;
 
-SELECT * FROM DVD d
-INNER JOIN rating r ON d.RatingId = r.RatingId;
-
-
-SELECT * FROM Rental
-WHERE RentalRequestDate < '20190203'
-
 -- Add a queue position to the rental table
 ALTER TABLE rental
 ADD QueuePosition SMALLINT;
 
-INSERT INTO RentalHistory
+--DROP SEQUENCE dbo.RentalHistory_Seq
+-- Create a sequence for the rental history tables ID
+CREATE SEQUENCE RentalHistory_Seq
+AS NUMERIC(12,0)
+START WITH 1
+INCREMENT BY 1;
+
+--DROP TABLE RentalHistory
+-- Select into RentalHistory with information from each other table
 SELECT
-NEXT VALUE FOR RentalHistoryId, r.RentalId, r.MemberId, r.DVDCopyId,
-DC.DVDId, z.ZipcodeId, d.DVDTitle, d.GenreName, r.RentalRequestDate,
+NEXT VALUE FOR dbo.RentalHistory_Seq AS 'RentalHistoryId',
+r.RentalId, r.MemberId, r.DVDCopyId,
+dc.DVDId, z.ZipcodeId, d.DVDTitle, d.GenreName, r.RentalRequestDate,
 r.RentalShippedDate, r.RentalReturnedDate, ms.MembershipType,
 m.MemberSinceDate, QueuePosition
+INTO RentalHistory
 FROM Rental r
 JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 JOIN DVD d ON d.DVDId = dc.DVDId
 JOIN Member m ON m.MemberId = r.MemberId
 JOIN Membership ms ON m.MembershipId = ms.MembershipId
-JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId
-WHERE RentalRequestDate < '20190203'
+JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId;
+--WHERE RentalRequestDate < '20190203'
+
+--SELECT * FROM RentalHistory
+
+--SELECT * FROM Rental
+--WHERE RentalRequestDate < '20190203'
+
+--SELECT * FROM DVD d
+--INNER JOIN rating r ON d.RatingId = r.RatingId;
 
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 CREATE OR ALTER TRIGGER Trig_Rental_hist_delete ON RentalHistory
+INSTEAD OF DELETE
+AS
 BEGIN
-	raise_application_error(-20001,'Records can not be deleted')
+	RAISEERROR('Deletions not allowed from this table', 16,1),
 	dbms_output.put_line( 'Records can not be deleted')
 END;
 
