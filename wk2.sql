@@ -70,7 +70,6 @@ JOIN DVD d ON d.DVDId = dc.DVDId
 JOIN Member m ON m.MemberId = r.MemberId
 JOIN Membership ms ON m.MembershipId = ms.MembershipId
 JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId;
---WHERE RentalRequestDate < '20190203'
 
 --SELECT * FROM RentalHistory
 
@@ -81,13 +80,16 @@ JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId;
 --INNER JOIN rating r ON d.RatingId = r.RatingId;
 
 -- 2. Prevent deletions from RentalHistory to prevent deletions
-CREATE OR ALTER TRIGGER Trig_Rental_hist_delete ON RentalHistory
+CREATE TRIGGER Trig_Rental_hist_delete
+ON dbo.RentalHistory
 INSTEAD OF DELETE
 AS
 BEGIN
-	RAISEERROR('Deletions not allowed from this table', 16,1),
-	dbms_output.put_line( 'Records can not be deleted')
+	RAISERROR('Deletions not allowed from this table', 16,1)
 END;
+
+DELETE FROM RentalHistory
+WHERE RentalHistoryId = 4
 
 -- insert movie at beginning, middle and the end of the queue
 
