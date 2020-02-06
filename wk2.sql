@@ -197,6 +197,9 @@ ELSE
 	INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, QueuePosition)
 	VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @member_id, @dvd_id, GETDATE(), @queue_position)
 	PRINT('Number is fine')
+	
+	IF @queue_position = @queue_maxP
+	
 	-- Something to this effect
 	-- FOR I IN RANGE(VAL TO VALMAX):
 	--	VAL = VAL + 1
