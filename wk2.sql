@@ -158,7 +158,11 @@ WHERE r.RentalId = 10;
 -- Insert movie at beginning, middle and the end of the queue
 -- Code to expand RentalQueue to include queue position
 
--- Insert some rental records with a queue position
+-- Reset RentalQueue test data.
+DELETE FROM RentalQueue
+WHERE MemberId = 1;
+
+-- Populate RentalQueue with test data
 INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
 VALUES (1, 1, GETDATE(), 1),
 	   (1, 2, GETDATE(), 2),
@@ -167,7 +171,7 @@ VALUES (1, 1, GETDATE(), 1),
 	   (1, 5, GETDATE(), 5);
 
 SELECT * FROM RentalQueue
-WHERE MemberId = 1
+WHERE MemberId = 1;
 
 ------- START TESTING
 DECLARE @member_id NUMERIC(12,0),
