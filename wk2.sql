@@ -5,6 +5,7 @@ CS779
 Homework wk. 2
 */
 
+USE NETFLIX
 -- 1.
 -- Not used since we're doing an insert into to create the table
 -- Create a rental history table
@@ -44,8 +45,8 @@ SET RatingName = r.RatingName,
 FROM DVD AS d
 INNER JOIN rating r ON d.RatingId = r.RatingId;
 
--- Add a queue position to the rental table
-ALTER TABLE rental
+-- Add a queue position to the rentalqueue table
+ALTER TABLE RentalQueue
 ADD QueuePosition SMALLINT;
 
 --DROP SEQUENCE dbo.RentalHistory_Seq
@@ -69,7 +70,10 @@ JOIN DVD_Copy dc ON dc.DVDCopyId = r.DVDCopyId
 JOIN DVD d ON d.DVDId = dc.DVDId
 JOIN Member m ON m.MemberId = r.MemberId
 JOIN Membership ms ON m.MembershipId = ms.MembershipId
-JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId;
+JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId
+JOIN RentalQueue rq ON rq.MemberId = r.MemberId
+
+SELECT * FROM 
 
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 CREATE TRIGGER Trig_Rental_hist_delete
@@ -155,14 +159,14 @@ WHERE r.RentalId = 10;
 -- Code to expand RentalQueue to include queue position
 
 -- Insert some rental records with a queue position
-INSERT INTO rental (RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate, RentalReturnedDate, QueuePosition)
-VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE(), NULL, NULL, 1),
-	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 20, GETDATE(), NULL, NULL, 2),
-	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 30, GETDATE(), NULL, NULL, 3),
-	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 40, GETDATE(), NULL, NULL, 4),
-	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 50, GETDATE(), NULL, NULL, 5);
+INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+VALUES (1, 1, GETDATE(), 1),
+	   (1, 2, GETDATE(), 2),
+	   (1, 3, GETDATE(), 3),
+	   (1, 4, GETDATE(), 4),
+	   (1, 5, GETDATE(), 5);
 
-SELECT * FROM Rental
+SELECT * FROM RentalQueue
 WHERE MemberId = 1
 
 CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
@@ -170,7 +174,8 @@ CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
 	@dvd_id NUMERIC(16,0),
 	@queue_position SMALLINT,
 	@queue_min SMALLINT,
-	@queue_max SMALLINT
+	@queue_max SMALLINT,
+	@current_row SMALLINT
 AS
 BEGIN
 IF (@queue_position < 1 OR @queue_position > @queue_max+1)
@@ -194,12 +199,24 @@ BEGIN
 	RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxP)
 END	
 ELSE
-	INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, QueuePosition)
-	VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @member_id, @dvd_id, GETDATE(), @queue_position)
+
 	PRINT('Number is fine')
 	
 	IF @queue_position = @queue_maxP
-	
+	-- Just insert because its the last one
+	INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, QueuePosition)
+	VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @member_id, @dvd_id, GETDATE(), @queue_position)
+
+	ELSE
+	UPDATE Rental
+	SET QueuePosition = @queue_position + 1
+	WHERE MemberId = @member_id AND 
+	DVDId = @dvd_id
+	-- take from row that is on current value up to max and add +1
+
 	-- Something to this effect
 	-- FOR I IN RANGE(VAL TO VALMAX):
 	--	VAL = VAL + 1
+
+
+SELECT * FROM RentalQueue
