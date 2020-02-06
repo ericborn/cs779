@@ -94,10 +94,74 @@ WHERE RentalHistoryId = 4
 -- insert movie at beginning, middle and the end of the queue
 
 -- 3. Trigger for updating RentalHistory table RentalShippedDate column when dvd sent to customer
--- trigger should probably be placed on rental table update
+CREATE TRIGGER Trig_Rental_hist_ship_update
+ON dbo.Rental
+FOR UPDATE
+AS 
+DECLARE @RentalId NUMERIC(16,0),
+		@RentalShippedDate DATETIME
+
+SELECT @RentalId = ins.RentalId FROM INSERTED ins;
+SELECT @RentalShippedDate = ins.RentalShippedDate FROM INSERTED ins;
+
+UPDATE RentalHistory
+SET [RentalShippedDate] = @RentalShippedDate
+WHERE [RentalId] = @RentalId
+PRINT 'Updated shipped date inside of RentalHistory'
+GO;
+
+-- Shows the RentalShippedDate is NULL for rentalId 10 in both tables
+SELECT  r.RentalId, r.RentalShippedDate, rh.RentalShippedDate
+FROM Rental r
+JOIN RentalHistory rh ON rh.RentalId = r.RentalId
+WHERE r.RentalId = 10;
+
+-- set the RentalShippedDate to the current date/time in the rental table
+UPDATE RENTAL
+SET RentalShippedDate = GETDATE()
+WHERE RentalId = 10;
+
+-- Shows the RentalShippedDate is filled for rentalId 10 in both tables
+SELECT  r.RentalId, r.RentalShippedDate, rh.RentalShippedDate
+FROM Rental r
+JOIN RentalHistory rh ON rh.RentalId = r.RentalId
+WHERE r.RentalId = 10;
+
 
 
 -- 4. Trigger for updating RentalHistory table RentalReturnedDate column when dvd received back from customer
+CREATE TRIGGER Trig_Rental_hist_ship_returned
+ON dbo.Rental
+FOR UPDATE
+AS 
+DECLARE @RentalId NUMERIC(16,0),
+		@RentalReturnedDate DATETIME
+SELECT @RentalId = ins.RentalId FROM INSERTED ins;
+SELECT @RentalReturnedDate = ins.RentalReturnedDate FROM INSERTED ins;
+
+UPDATE RentalHistory
+SET [RentalReturnedDate] = @RentalReturnedDate
+WHERE [RentalId] = @RentalId
+PRINT 'Updated returned date inside of RentalHistory'
+GO
+
+-- Shows the RentalReturnedDate is NULL for rentalId 10 in both tables
+SELECT  r.RentalId, r.RentalReturnedDate, rh.RentalReturnedDate
+FROM Rental r
+JOIN RentalHistory rh ON rh.RentalId = r.RentalId
+WHERE r.RentalId = 10;
+
+-- set the RentalReturnedDate to the current date/time in the rental table
+UPDATE RENTAL
+SET RentalReturnedDate = GETDATE()
+WHERE RentalId = 10;
+
+-- Shows the RentalReturnedDate is filled for rentalId 10 in both tables
+SELECT  r.RentalId, r.RentalReturnedDate, rh.RentalReturnedDate
+FROM Rental r
+JOIN RentalHistory rh ON rh.RentalId = r.RentalId
+WHERE r.RentalId = 10;
+
 
 -- 5. 
 -- Code to expand RentalQueue to include queue position
