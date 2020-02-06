@@ -192,6 +192,11 @@ SET @queue_maxP = @queue_max + 1
 IF (@queue_position < 1 OR @queue_position >= @queue_maxP)
 BEGIN
 	RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxP)
-END
+END	
 ELSE
+	INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, QueuePosition)
+	VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @member_id, @dvd_id, GETDATE(), @queue_position)
 	PRINT('Number is fine')
+	-- Something to this effect
+	-- FOR I IN RANGE(VAL TO VALMAX):
+	--	VAL = VAL + 1
