@@ -1,19 +1,9 @@
---Reset RentalQueue test data.
---DELETE FROM RentalQueue
---WHERE MemberId = 2;
-
----- Populate RentalQueue with test data
---INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
---VALUES (1, 1, GETDATE(), 1),
---	   (1, 2, GETDATE(), 2),
---	   (1, 3, GETDATE(), 3),
---	   (1, 4, GETDATE(), 4),
---	   (1, 5, GETDATE(), 5),
---	   (1, 6, GETDATE(), 6),
---	   (1, 7, GETDATE(), 7)
-
---SELECT * FROM RentalQueue
---WHERE MemberId = 3;
+/*
+Eric Born
+CS779
+8 Feb 2020
+Homework wk. 2
+*/
 
 -- Create the stored proc for adding a DVD to the queue.
 -- Takes MemberId, DVDId and Queue position as inputs.
@@ -116,7 +106,26 @@ ELSE
 			END;
 	END;
 	
+-- Test queue setup
+-- Reset RentalQueue test data.
+DELETE FROM RentalQueue
+WHERE MemberId = 1;
+
+-- Populate RentalQueue with test data
+INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+VALUES (1, 1, GETDATE(), 1),
+	   (1, 2, GETDATE(), 2),
+	   (1, 3, GETDATE(), 3),
+	   (1, 4, GETDATE(), 4),
+	   (1, 5, GETDATE(), 5),
+	   (1, 6, GETDATE(), 6),
+	   (1, 7, GETDATE(), 7)
 
 SELECT * FROM RentalQueue
-WHERE MemberId = 2
+WHERE MemberId = 1;
+
+EXEC ADD_RENTAL_QUEUE @member_id = 1, @dvd_id = 7, @queue_position = 5
+
+SELECT * FROM RentalQueue
+WHERE MemberId = 1
 ORDER BY QueuePosition
