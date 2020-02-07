@@ -1,6 +1,6 @@
 --Reset RentalQueue test data.
---DELETE FROM RentalQueue
---WHERE MemberId = 2;
+DELETE FROM RentalQueue
+WHERE MemberId = 1;
 
 -- Populate RentalQueue with test data
 INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
@@ -51,12 +51,16 @@ IF @member_id IN (SELECT TOP 1 MemberId FROM RentalQueue WHERE MemberId = @membe
 					SET @queue_position = (SELECT QueuePosition 
 										   FROM RentalQueue 
 										   WHERE MemberId = @member_id AND DVDId = @dvd_id)
-						UPDATE RentalQueue
-						SET QueuePosition = QueuePosition - 1
-						WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
-
+						
 						DELETE FROM RentalQueue
 						WHERE MemberId = @member_id AND QueuePosition = @queue_position;
+						
+						UPDATE RentalQueue
+						SET QueuePosition = QueuePosition - 1
+						WHERE MemberId = @member_id AND QueuePosition > @queue_position;
+
+						--SELECT * FROM RentalQueue
+						--WHERE MemberId = 1 AND QueuePosition > 5;
 					END;
 				-- Raise an error if the DVD is not in the queue
 				ELSE
