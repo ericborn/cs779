@@ -29,11 +29,12 @@ WHERE MemberId = 1;
 DECLARE
 		-- Test variables
 		@member_id NUMERIC(12,0),
-		@dvd_id NUMERIC(16,0)
+		@dvd_id NUMERIC(16,0),
+		@queue_position SMALLINT
 	
 	-- Set test variables
-	SELECT @member_id = 3,
-		   @dvd_id = 1
+	SELECT @member_id = 1,
+		   @dvd_id = 5
 
 -- Check to see if member has an established queue by selecting top 1 row from
 -- RentalQueue where MemberId equals @member_id
@@ -43,43 +44,24 @@ IF @member_id IN (SELECT TOP 1 MemberId FROM RentalQueue WHERE MemberId = @membe
 		-- Check to ensure the DVDId is valid
 		IF @dvd_id IN (SELECT DVDId FROM DVD) 
 			BEGIN
-				-- If the DVDId is not currently in the rental queue for this customer proceed
-				-- if it is, throw an error and stop
-				IF @dvd_id NOT IN (SELECT DVDId FROM RentalQueue WHERE MemberId = @member_id)
+				-- If the DVDId is currently in the rental queue for this customer proceed
+				-- if its not, throw an error and stop
+				IF @dvd_id IN (SELECT DVDId FROM RentalQueue WHERE MemberId = @member_id)
 					BEGIN
-						-- If the selected queue position is greater than 0 or less than or equal to 1 
-						-- greater than the highest queue value proceed with the insert. Otherwise raise an error
-						IF (@queue_position > 0 AND @queue_position <= @queue_maxPlus)
-							BEGIN
-								--If queue position is one larger than the current highest queue item, insert without reorder
-								IF @queue_position = @queue_maxPlus
-									BEGIN
-										INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
-										VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
-									END;
-								-- If queue position is not the largest value, update all items in the queue
-								-- from their current value to their value +1 then insert new item into the list
-								ELSE
-									BEGIN
-										-- Reorder queue then insert
-										UPDATE RentalQueue
-										SET QueuePosition = QueuePosition + 1
-										WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
-										 -- Insert new queue row
-										INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
-										VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
-									END;
-							END;
-						-- If the queue position value is less than 1 or greater than +1 of their current max raise and error
-						ELSE
-							BEGIN
-								RAISERROR('Error, please choose a queue positon between 1 and %d.',12,1,@queue_maxPlus);
-							END;
+					SET @queue_position = (SELECT QueuePosition 
+										   FROM RentalQueue 
+										   WHERE MemberId = @member_id AND DVDId = @dvd_id)
+						UPDATE RentalQueue
+						SET QueuePosition = QueuePosition - 1
+						WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
+
+						DELETE FROM RentalQueue
+						WHERE MemberId = @member_id AND QueuePosition = @queue_position;
 					END;
-				-- Raise and error for the DVD already being in the queue
+				-- Raise an error if the DVD is not in the queue
 				ELSE
 					BEGIN
-						RAISERROR('Error, please choose a DVD that is not already in your queue.',11,1);
+						RAISERROR('Error, please choose a DVD that is currently in your queue.',11,1);
 					END;
 			END;
 		-- Raise an error for the DVDId being invalid
@@ -88,23 +70,14 @@ IF @member_id IN (SELECT TOP 1 MemberId FROM RentalQueue WHERE MemberId = @membe
 				RAISERROR('Error, please choose a valid DVDId.',11,1);
 			END;
 	END;
--- If the member does not have a queue, did they choose queue position 1?
+-- If the member does not have a queue raise an error
 ELSE
 	BEGIN
-		-- If the member does not have a queue and chose position 1, insert a row
-		IF @queue_position = 1
-			BEGIN
-				INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
-				VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
-			END;
-		-- If they did not choose position 1 raise an error.
-		ELSE
-			BEGIN
-				RAISERROR('Error, please choose queue position 1 since there are no other items in your queue.',11,1);
-			END;
+		RAISERROR('Error, you currently have no items in your queue.',11,1);
 	END;
+
 	
 
 SELECT * FROM RentalQueue
-WHERE MemberId = 2
+WHERE MemberId = 1
 ORDER BY QueuePosition
