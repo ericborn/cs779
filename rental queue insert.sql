@@ -8,41 +8,43 @@ VALUES (1, 1, GETDATE(), 1),
 	   (1, 2, GETDATE(), 2),
 	   (1, 3, GETDATE(), 3),
 	   (1, 4, GETDATE(), 4),
-	   (1, 5, GETDATE(), 5);
+	   (1, 5, GETDATE(), 5),
+	   (1, 6, GETDATE(), 6),
+	   (1, 7, GETDATE(), 7)
 
 SELECT * FROM RentalQueue
 WHERE MemberId = 1;
 
-
---CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
---	@member_id NUMERIC(12,0),
---	@dvd_id NUMERIC(16,0),
---	@queue_position SMALLINT
---AS
+-- Create the stored proc for adding a DVD to the queue.
+-- Takes MemberId, DVDId and Queue position as inputs.
+-- Performs error checking on the following: 
+-- Queue position being less than 1 or greater than 1 higher than the current max queue position.
+-- Invalid DVDId's.
+-- DVDId already in the members queue.
+CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
+	@member_id NUMERIC(12,0),
+	@dvd_id NUMERIC(16,0),
+	@queue_position SMALLINT
+AS
 -- Create variables to store the highest value current in the queue and that value plus 1
 DECLARE @queue_max SMALLINT,
-		@queue_maxPlus SMALLINT,
+		@queue_maxPlus SMALLINT
 		
 		-- Test variables
-		@member_id NUMERIC(12,0),
-		@dvd_id NUMERIC(16,0),
-		@queue_position SMALLINT
+		,@member_id NUMERIC(12,0),
+		 @dvd_id NUMERIC(16,0),
+		 @queue_position SMALLINT
 	
 	-- Set test variables
 	SELECT @member_id = 1,
-		   @dvd_id = 6,
-		   @queue_position = 5
+		   @dvd_id = 8,
+		   @queue_position = 2
 
+	-- Find the highest queue position
 	SET @queue_max = (SELECT MAX(QueuePosition) FROM RentalQueue WHERE MemberId = @member_id)
 	
 	-- set @queue_maxP to max + 1 to track maximum queue values range
 	SET @queue_maxPlus = @queue_max + 1
-
---PRINT @member_id
---PRINT @dvd_id
---PRINT @queue_position
---PRINT @queue_min
---PRINT @queue_max
 
 -- Check to ensure the DVDId is valid
 IF @dvd_id IN (SELECT DVDId FROM DVD) 
