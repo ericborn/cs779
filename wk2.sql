@@ -73,6 +73,8 @@ JOIN Membership ms ON m.MembershipId = ms.MembershipId
 JOIN ZipCode z	on z.ZipCodeId = m.MemberAddressId
 JOIN RentalQueue rq ON rq.MemberId = r.MemberId
 
+SELECT * FROM RentalHistory
+
 -- 2. Prevent deletions from RentalHistory to prevent deletions
 CREATE TRIGGER Trig_Rental_hist_delete
 ON dbo.RentalHistory
@@ -133,7 +135,7 @@ UPDATE RentalHistory
 SET [RentalReturnedDate] = @RentalReturnedDate
 WHERE [RentalId] = @RentalId
 PRINT 'Updated returned date inside of RentalHistory'
-GO
+GO;
 
 -- Shows the RentalReturnedDate is NULL for rentalId 10 in both tables
 SELECT  r.RentalId, r.RentalReturnedDate, rh.RentalReturnedDate
@@ -365,8 +367,8 @@ VALUES (1, 1, GETDATE(), 1),
 SELECT * FROM RentalQueue
 WHERE MemberId = 1;
 
-EXEC DELETE_RENTAL_QUEUE @member_id = 1, @dvd_id = 4
+EXEC DELETE_RENTAL_QUEUE @member_id = 1, @dvd_id = 7
 
 SELECT * FROM RentalQueue
-WHERE MemberId = 2
+WHERE MemberId = 1
 ORDER BY QueuePosition
