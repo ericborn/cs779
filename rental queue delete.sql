@@ -34,7 +34,7 @@ DECLARE
 	
 	-- Set test variables
 	SELECT @member_id = 1,
-		   @dvd_id = 5
+		   @dvd_id = 3
 
 -- Check to see if member has an established queue by selecting top 1 row from
 -- RentalQueue where MemberId equals @member_id
@@ -79,8 +79,6 @@ ELSE
 	BEGIN
 		RAISERROR('Error, you currently have no items in your queue.',11,1);
 	END;
-
-	
 
 SELECT * FROM RentalQueue
 WHERE MemberId = 1
