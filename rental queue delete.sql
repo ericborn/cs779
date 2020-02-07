@@ -1,22 +1,11 @@
-USE NetFlix
+/*
+Eric Born
+CS779
+8 Feb 2020
+Homework wk. 2
+*/
 
---Reset RentalQueue test data.
-DELETE FROM RentalQueue
-WHERE MemberId = 1;
-
--- Populate RentalQueue with test data
-INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
-VALUES (1, 1, GETDATE(), 1),
-	   (1, 2, GETDATE(), 2),
-	   (1, 3, GETDATE(), 3),
-	   (1, 4, GETDATE(), 4),
-	   (1, 5, GETDATE(), 5),
-	   (1, 6, GETDATE(), 6),
-	   (1, 7, GETDATE(), 7)
-
-SELECT * FROM RentalQueue
-WHERE MemberId = 1;
-
+-- 6.
 -- Create the stored proc for deleting a DVD from the queue.
 -- Takes MemberId and DVDId inputs.
 -- Performs error checking on the following: 
@@ -25,8 +14,10 @@ WHERE MemberId = 1;
 -- Member does not have any items in their queue
 CREATE OR ALTER PROCEDURE DELETE_RENTAL_QUEUE
 	@member_id NUMERIC(12,0),
-	@dvd_id NUMERIC(16,0)  
+	@dvd_id NUMERIC(16,0)
 AS
+
+-- initialize a variable to find where the dvd currently sits in the queue
 DECLARE @queue_position SMALLINT
 
 --		-- Test variables
@@ -82,6 +73,26 @@ ELSE
 	BEGIN
 		RAISERROR('Error, you currently have no items in your queue.',11,1);
 	END;
+
+-- Test queue setup
+-- Reset RentalQueue test data.
+DELETE FROM RentalQueue
+WHERE MemberId = 1;
+
+-- Populate RentalQueue with test data
+INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+VALUES (1, 1, GETDATE(), 1),
+	   (1, 2, GETDATE(), 2),
+	   (1, 3, GETDATE(), 3),
+	   (1, 4, GETDATE(), 4),
+	   (1, 5, GETDATE(), 5),
+	   (1, 6, GETDATE(), 6),
+	   (1, 7, GETDATE(), 7)
+
+SELECT * FROM RentalQueue
+WHERE MemberId = 1;
+
+EXEC DELETE_RENTAL_QUEUE @member_id = 1, @dvd_id = 7
 
 SELECT * FROM RentalQueue
 WHERE MemberId = 1
