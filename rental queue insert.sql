@@ -1,10 +1,4 @@
---CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
---	@member_id NUMERIC(12,0),
---	@dvd_id NUMERIC(16,0),
---	@queue_position SMALLINT,
---	@queue_max SMALLINT,
-
--- Reset RentalQueue test data.
+--Reset RentalQueue test data.
 DELETE FROM RentalQueue
 WHERE MemberId = 1;
 
@@ -19,15 +13,25 @@ VALUES (1, 1, GETDATE(), 1),
 SELECT * FROM RentalQueue
 WHERE MemberId = 1;
 
-DECLARE @member_id NUMERIC(12,0),
-		@dvd_id NUMERIC(16,0),
-		@queue_position SMALLINT,
-		@queue_max SMALLINT,
-		@queue_maxPlus SMALLINT
 
+--CREATE OR ALTER PROCEDURE ADD_RENTAL_QUEUE
+--	@member_id NUMERIC(12,0),
+--	@dvd_id NUMERIC(16,0),
+--	@queue_position SMALLINT
+--AS
+-- Create variables to store the highest value current in the queue and that value plus 1
+DECLARE @queue_max SMALLINT,
+		@queue_maxPlus SMALLINT,
+		
+		-- Test variables
+		@member_id NUMERIC(12,0),
+		@dvd_id NUMERIC(16,0),
+		@queue_position SMALLINT
+	
+	-- Set test variables
 	SELECT @member_id = 1,
 		   @dvd_id = 6,
-		   @queue_position = 100
+		   @queue_position = 5
 
 	SET @queue_max = (SELECT MAX(QueuePosition) FROM RentalQueue WHERE MemberId = @member_id)
 	
@@ -40,30 +44,49 @@ DECLARE @member_id NUMERIC(12,0),
 --PRINT @queue_min
 --PRINT @queue_max
 
--- If the selected queue position is greater than 0 or less than or equal to 1 
--- greater than the highest queue value proceed with the insert. Otherwise raise an error
-IF (@queue_position > 0 AND @queue_position <= @queue_maxPlus)
+-- Check to ensure the DVDId is valid
+IF @dvd_id IN (SELECT DVDId FROM DVD) 
 	BEGIN
-		PRINT('Number is fine');
-		IF @queue_position = @queue_maxPlus
+		-- If the DVDId is not currently in the rental queue for this customer proceed
+		-- if it is, throw an error and stop
+		IF @dvd_id NOT IN (SELECT DVDId FROM RentalQueue WHERE MemberId = @member_id)
 			BEGIN
-				--Insert at max queue position
-				INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
-				VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
+				-- If the selected queue position is greater than 0 or less than or equal to 1 
+				-- greater than the highest queue value proceed with the insert. Otherwise raise an error
+				IF (@queue_position > 0 AND @queue_position <= @queue_maxPlus)
+					BEGIN
+						--If queue position is one larger than the current highest queue item, insert without reorder
+						IF @queue_position = @queue_maxPlus
+							BEGIN
+								INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+								VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
+							END;
+						ELSE
+							BEGIN
+								-- Reorder queue then insert
+								UPDATE RentalQueue
+								SET QueuePosition = QueuePosition + 1
+								WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
+								 -- Insert new queue row
+								INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+								VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
+							END;
+					END;
+				ELSE
+					BEGIN
+						RAISERROR('Error, please choose a queue positon between 1 and %d.',12,1,@queue_maxPlus);
+					END;
 			END;
 		ELSE
 			BEGIN
-				-- Reorder queue then insert
-				UPDATE RentalQueue
-				SET QueuePosition = QueuePosition + 1
-				WHERE MemberId = @member_id AND QueuePosition >= @queue_position;
-				 -- Insert new queue row
-				INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
-				VALUES (@member_id, @dvd_id, GETDATE(), @queue_position);
+				RAISERROR('Error, please choose a DVD that is not already in your queue.',11,1);
 			END;
-		END;
-ELSE 
-	RAISERROR('Error, please choose a queue positon between 1 and %d',11,1,@queue_maxPlus);
+	END;
+ELSE
+	BEGIN
+		RAISERROR('Error, please choose a valid DVDId.',11,1);
+	END;
+
 
 SELECT * FROM RentalQueue
 WHERE MemberId = 1
