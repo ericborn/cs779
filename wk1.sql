@@ -124,9 +124,6 @@ WHERE MemberId = 2 AND DVDId = 2;
 DELETE FROM DVDReview
 WHERE DVDReview.MemberId = 10 AND DVDId = 7;
 
--- !!!!!!!!TODO!!!!!!!!!!!
--- COMPLETE QUESTION 5
-
 -- 5.	Schema extension
 SELECT * FROM DVD
 SELECT * FROM rental
