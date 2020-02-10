@@ -99,3 +99,24 @@ WHERE DVDCopyId = 32
 SELECT * --DVDId 
 FROM RentalQueue
 WHERE MemberId = 1
+
+
+-- 2.
+-- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
+
+-- Returns the total a customer currently has rented
+SELECT COUNT(*)
+FROM Rental
+WHERE MemberId = 1 AND RentalShippedDate BETWEEN 
+(SELECT CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112)) AND EOMONTH(GETDATE())
+
+-- Start and end of current month
+SELECT
+CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112) AS 'Start',
+EOMONTH(GETDATE()) AS 'end'
+
+-- find members limit per month and dvds at once
+SELECT m.MembershipId, ms.MembershipLimitPerMonth, ms.DVDAtTime  
+FROM Member m
+JOIN Membership ms ON ms.MembershipId = m.MemberId
+WHERE m.MemberId = 1
