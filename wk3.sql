@@ -104,16 +104,24 @@ WHERE MemberId = 1
 -- 2.
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
 
+DECLARE @currentRented SMALLINT
+
+SET @currentRented = 
 -- Returns the total a customer currently has rented
-SELECT COUNT(*)
+(SELECT COUNT(*)
 FROM Rental
 WHERE MemberId = 1 AND RentalShippedDate BETWEEN 
-(SELECT CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112)) AND EOMONTH(GETDATE())
+(SELECT CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112)) AND EOMONTH(GETDATE()))
+
+-- Set movies as rented
+--UPDATE Rental
+--SET RentalShippedDate = GETDATE()
+--WHERE RentalID = 13
 
 -- Start and end of current month
-SELECT
-CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112) AS 'Start',
-EOMONTH(GETDATE()) AS 'end'
+--SELECT
+--CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112) AS 'Start',
+--EOMONTH(GETDATE()) AS 'end'
 
 -- find members limit per month and dvds at once
 SELECT m.MembershipId, ms.MembershipLimitPerMonth, ms.DVDAtTime  
