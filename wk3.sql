@@ -34,7 +34,7 @@ BEGIN
 			-- Needs to find the lowest queued dvd that is also on hand = 1
 			SELECT TOP 1 dc.DVDId
 			FROM DVD_Copy dc
-			JOIN RentalQueue r ON r.DVDId = dc.DVDId
+			INNER JOIN RentalQueue r ON r.DVDId = dc.DVDId
 			WHERE dc.DVDQtyOnHand = 1 AND r.QueuePosition = (SELECT MIN(QueuePosition) FROM RentalQueue)
 		END
 
@@ -45,15 +45,55 @@ BEGIN
 		END;
 
 
-SELECT * --DVDId 
-FROM RentalQueue
-WHERE MemberId = 1
+SELECT DISTINCT dc.DVDId, QueuePosition, ROW_NUMBER() OVER (PARTITION BY dc.DVDId ORDER BY QueuePosition)
+FROM DVD_Copy dc
+INNER JOIN RentalQueue r ON r.DVDId = dc.DVDId
+INNER JOIN (
+	SELECT DVDId, MIN(QueuePosition) MinQueue
+	FROM RentalQueue
+	GROUP BY DVDId
+) rq2
+ON rq2.DVDId = r.DVDId
+WHERE dc.DVDQtyOnHand = 1 AND rq2.MinQueue = r.QueuePosition AND r.MemberId = 1 
+ORDER BY QueuePosition
+
+SELECT TOP 1 WITH TIES 
+dc.DVDId, QueuePosition
+FROM DVD_Copy dc
+INNER JOIN RentalQueue r1 ON r1.DVDId = dc.DVDId
+WHERE dc.DVDQtyOnHand = 1 AND r1.MemberId = 1 
+r1.QueuePosition = (SELECT TOP 1 MIN(QueuePosition) FROM RentalQueue r2 WHERE r2.MemberId = r1.MemberId GROUP BY MemberId)
+ORDER BY ROW_NUMBER() OVER (PARTITION BY r1.MemberId ORDER BY r1.RentalShippedDate DESC);
+
+WITH CTE
+AS
+(   
+    SELECT
+        RANK() OVER(PARTITION BY id ORDER BY price ASC) AS RowNbr,
+        tbl.*
+    FROM
+        @tbl AS tbl
+)
+SELECT
+    *
+FROM
+    CTE
+WHERE
+    CTE.RowNbr=1
+
+
+SELECT TOP 1 MIN(QueuePosition), rq.DVDId 
+FROM RentalQueue rq
+JOIN DVD_Copy dc ON rq.DVDId = dc.DVDId
+WHERE MemberId = 1 AND dc.DVDQtyOnHand = 1
+GROUP BY rq.DVDId
+
 
 SELECT * FROM DVD_Copy
 
 UPDATE DVD_Copy
 SET DVDQtyOnHand = 1
-WHERE DVDCopyId = 23
+WHERE DVDCopyId = 32
 
 
 SELECT * --DVDId 
