@@ -201,7 +201,7 @@ IF @DVDRemaining <= 0
 		RAISERROR('Member cannot rent another DVD at this time', 11,1)
 	END;
 
--- Test should fail
+-- Test should fail since member 2 has already rented 4 dvd's this month
 -- Populate Rental with a row for member 2
 INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate)
 VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 2, 1, GETDATE());
