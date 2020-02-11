@@ -103,9 +103,6 @@ WHERE MemberId = 1
 
 -- 2.
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
-
--- !!!!!!!TODO!!!!!!!!
--- TEST MORE SCENARIOS
 CREATE OR ALTER FUNCTION CountDVDLimits (
 	@MemberId NUMERIC(12,0)
 )
@@ -121,11 +118,12 @@ BEGIN
 	--SELECT @MemberId = 1
 
 	 -- First find the maximum DVD's a customer can have at a time
-	 -- subtract that from a count of DVD's that have a shipped timestamp, but no return timestamp
+	 -- Subtract that from a count of DVD's that have a shipped timestamp, but no return timestamp
+	 -- This will find movies shipped during a previous month that have still not been returned
 	 SET @MaxAtTime = 
 	 (SELECT ms.DVDAtTime 
 	 FROM Member m
-	 JOIN Membership ms ON ms.MembershipId = m.MemberId
+	 JOIN Membership ms ON ms.MembershipId = m.MembershipId
 	 WHERE m.MemberId = @MemberId) -
 	 (SELECT COUNT(*)
 	 FROM Rental
@@ -137,7 +135,7 @@ BEGIN
 	SET @MaxPerMonth = 
 	(SELECT ms.MembershipLimitPerMonth
 	 FROM Member m
-	 JOIN Membership ms ON ms.MembershipId = m.MemberId
+	 JOIN Membership ms ON ms.MembershipId = m.MembershipId
 	 WHERE m.MemberId = @MemberId) -
 	-- Dynamically finds first and last day of month then checks for rental shipped date between the two
 	(SELECT COUNT(*)
@@ -152,19 +150,38 @@ BEGIN
 			ELSE @MaxPerMonth
 		END
 		);
-END
+END;
 
-SELECT dbo.CountDVDLimits(1) AS 'DVDs'
+-- Used for testing
+-- Populate Rental with test data
+--INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate)
+--VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 2, 1, GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 2, 13, GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 2, 29, GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 2, 37, GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 2, 43, GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 2, 41, GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 2, 57, GETDATE())
+
+-- View rentals for a specific memberId
+SELECT * 
+FROM rental
+WHERE memberId = 3;
 
 -- Set movies as rented
 UPDATE Rental
+SET RentalShippedDate = GETDATE()
+WHERE RentalID = 25;
+
+-- Set movies as returned
+UPDATE Rental
 SET RentalReturnedDate = GETDATE()
-WHERE RentalID = 13
+WHERE RentalID = 26;
 
-select * 
-from rental
-where memberId  = 2
+-- Used to test the function
+-- member 1 is 3 at time, 99 per month
+-- member 2 is 2 at time, 4 per month
+-- member 3 is 2 at time, 4 per month
+SELECT dbo.CountDVDLimits(3) AS 'DVDs Remaining';
 
-select * 
-from rental
-where memberId  = 1 AND RentalShippedDate IS NOT NULL AND RentalReturnedDate IS NULL
+-- 3. 
