@@ -106,7 +106,7 @@ WHERE MemberId = 1
 
 -- !!!!!!!TODO!!!!!!!!
 -- TEST MORE SCENARIOS
-CREATE FUNCTION CountDVDLimits (
+CREATE OR ALTER FUNCTION CountDVDLimits (
 	@MemberId NUMERIC(12,0)
 )
 RETURNS NUMERIC(12,0)
@@ -145,21 +145,26 @@ BEGIN
 	 WHERE MemberId = @MemberId AND RentalShippedDate BETWEEN 
 	(SELECT CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112)) AND EOMONTH(GETDATE()))
 
-	IF @MaxAtTime < @MaxPerMonth
-		BEGIN
-			PRINT @MaxAtTime
-			--RETURN @MaxAtTime
+	-- Returns whichever value is lower
+	RETURN (
+		CASE
+			WHEN @MaxAtTime < @MaxPerMonth THEN @MaxAtTime
+			ELSE @MaxPerMonth
 		END
-	ELSE
-		BEGIN
-			PRINT @MaxPerMonth
-			--RETURN @MaxPerMonth
-		END
+		);
 END
--- Set movies as rented
---UPDATE Rental
---SET RentalReturnedDate = GETDATE()
---WHERE RentalID = 13
 
---select * from rental
---where memberId  = 1
+SELECT dbo.CountDVDLimits(1) AS 'DVDs'
+
+-- Set movies as rented
+UPDATE Rental
+SET RentalReturnedDate = GETDATE()
+WHERE RentalID = 13
+
+select * 
+from rental
+where memberId  = 2
+
+select * 
+from rental
+where memberId  = 1 AND RentalShippedDate IS NOT NULL AND RentalReturnedDate IS NULL
