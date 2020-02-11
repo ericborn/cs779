@@ -166,7 +166,7 @@ END;
 -- View rentals for a specific memberId
 SELECT * 
 FROM rental
-WHERE memberId = 3;
+WHERE memberId = 2;
 
 -- Set movies as rented
 UPDATE Rental
@@ -182,6 +182,26 @@ WHERE RentalID = 26;
 -- member 1 is 3 at time, 99 per month
 -- member 2 is 2 at time, 4 per month
 -- member 3 is 2 at time, 4 per month
-SELECT dbo.CountDVDLimits(3) AS 'DVDs Remaining';
+SELECT dbo.CountDVDLimits(2) AS 'DVDs Remaining';
 
--- 3. 
+-- 3.
+-- Create a trigger that wont allow a new rental row if the member has reached
+-- their maximum current or monthly DVD's
+CREATE TRIGGER Trig_Rental_Check_before_ship
+ON dbo.Rental
+INSTEAD OF INSERT
+AS
+DECLARE @MemberId NUMERIC(12,0),
+		@DVDRemaining SMALLINT
+
+SELECT @MemberId = ins.MemberId FROM INSERTED ins;
+SELECT @DVDRemaining = (SELECT dbo.CountDVDLimits(@MemberId));
+IF @DVDRemaining <= 0
+	BEGIN
+		RAISERROR('Member cannot rent another DVD at this time', 11,1)
+	END;
+
+-- Test should fail
+-- Populate Rental with a row for member 2
+INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate)
+VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 2, 1, GETDATE());
