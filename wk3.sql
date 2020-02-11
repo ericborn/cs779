@@ -104,14 +104,8 @@ WHERE MemberId = 1
 -- 2.
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
 
-
-
-PRINT @currentRented
-PRINT (@MaxPerMonth - @currentRented)
-PRINT (@MaxAtTime - @currentRented)
-
--- Need a check for membership value 1 or 2
--- If 1
+-- !!!!!!!TODO!!!!!!!!
+-- TEST MORE SCENARIOS
 CREATE FUNCTION CountDVDLimits (
 	@MemberId NUMERIC(12,0)
 )
@@ -122,9 +116,9 @@ BEGIN
 			@TotalRented SMALLINT,
 			@MaxPerMonth SMALLINT,
 			@MaxAtTime SMALLINT
-			,@MemberId NUMERIC(12,0)
+			--,@MemberId NUMERIC(12,0)
 
-	SELECT @MemberId = 1
+	--SELECT @MemberId = 1
 
 	 -- First find the maximum DVD's a customer can have at a time
 	 -- subtract that from a count of DVD's that have a shipped timestamp, but no return timestamp
@@ -154,24 +148,18 @@ BEGIN
 	IF @MaxAtTime < @MaxPerMonth
 		BEGIN
 			PRINT @MaxAtTime
+			--RETURN @MaxAtTime
 		END
 	ELSE
 		BEGIN
 			PRINT @MaxPerMonth
+			--RETURN @MaxPerMonth
 		END
 END
 -- Set movies as rented
 --UPDATE Rental
---SET RentalShippedDate = GETDATE()
+--SET RentalReturnedDate = GETDATE()
 --WHERE RentalID = 13
 
--- Start and end of current month
---SELECT
---CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112) AS 'Start',
---EOMONTH(GETDATE()) AS 'end'
-
--- find members limit per month and dvds at once
-SELECT m.MembershipId, ms.MembershipLimitPerMonth, ms.DVDAtTime  
-FROM Member m
-JOIN Membership ms ON ms.MembershipId = m.MemberId
-WHERE m.MemberId = 1
+--select * from rental
+--where memberId  = 1
