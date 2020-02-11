@@ -105,18 +105,30 @@ WHERE MemberId = 1
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
 
 DECLARE @currentRented SMALLINT,
+		@TotalRented SMALLINT,
 		@MaxPerMonth SMALLINT,
 		@MaxAtTime SMALLINT,
 		@MemberId NUMERIC(12,0)
 
-SELECT @MemberId = 1
+SELECT @MemberId = 2
 
-SET @currentRented = 
 -- Returns the total a customer currently has rented
+-- Only counts shipped that have not been returned
+SET @currentRented = 
+(SELECT COUNT(*)
+FROM Rental
+WHERE MemberId = @MemberId AND RentalReturnedDate IS NOT NULL)
+
+-- Returns the total a customer has rented this month
+-- Dynamically finds first and last day of month then checks for rental shipped date between the two
+SET @TotalRented = 
 (SELECT COUNT(*)
 FROM Rental
 WHERE MemberId = @MemberId AND RentalShippedDate BETWEEN 
 (SELECT CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112)) AND EOMONTH(GETDATE()))
+
+--SELECT * FROM Rental
+--SELECT * FROM Membership
 
 SET @MaxPerMonth = 
 (SELECT ms.MembershipLimitPerMonth
@@ -130,10 +142,33 @@ FROM Member m
 JOIN Membership ms ON ms.MembershipId = m.MemberId
 WHERE m.MemberId = @MemberId)
 
+PRINT @currentRented
 PRINT (@MaxPerMonth - @currentRented)
 PRINT (@MaxAtTime - @currentRented)
 
+-- Need a check for membership value 1 or 2
+-- If 1
+CREATE FUNCTION GetAdditionalDVD (
+	@MemberId NUMERIC(12,0)
+)
+RETURNS NUMERIC(12,0)
+AS
+BEGIN
+	-- Check for a balance greater than or equal to 0
+	IF (SELECT Balance FROM member WHERE MemberId = @MemberId) >= 0
+		BEGIN
+			-- Needs to find the lowest queued dvd that is also on hand = 1
+			SELECT TOP 1 dc.DVDId
+			FROM DVD_Copy dc
+			INNER JOIN RentalQueue r ON r.DVDId = dc.DVDId
+			WHERE dc.DVDQtyOnHand = 1 AND r.QueuePosition = (SELECT MIN(QueuePosition) FROM RentalQueue)
+		END
 
+	-- If members balance is negative throw an error and stop
+	ELSE
+		BEGIN
+			RAISERROR('Error, you currently have an outstanding balance.',12,1,@queue_maxPlus);
+		END;
 
 -- Set movies as rented
 --UPDATE Rental
