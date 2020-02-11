@@ -12,8 +12,8 @@ Homework wk. 3
 -- Performs error checking that the customers balance isnt negative
 
 -- Add balance column to the member table
-ALTER TABLE member
-ADD Balance INT;
+--ALTER TABLE member
+--ADD Balance INT;
 
 -- update member 1 with a negative balance
 UPDATE member
@@ -104,14 +104,36 @@ WHERE MemberId = 1
 -- 2.
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
 
-DECLARE @currentRented SMALLINT
+DECLARE @currentRented SMALLINT,
+		@MaxPerMonth SMALLINT,
+		@MaxAtTime SMALLINT,
+		@MemberId NUMERIC(12,0)
+
+SELECT @MemberId = 1
 
 SET @currentRented = 
 -- Returns the total a customer currently has rented
 (SELECT COUNT(*)
 FROM Rental
-WHERE MemberId = 1 AND RentalShippedDate BETWEEN 
+WHERE MemberId = @MemberId AND RentalShippedDate BETWEEN 
 (SELECT CONVERT(DATE, DATEADD(d, 1,DATEADD(d,-DAY(DATEADD(m,1,GETDATE())),GETDATE())),112)) AND EOMONTH(GETDATE()))
+
+SET @MaxPerMonth = 
+(SELECT ms.MembershipLimitPerMonth
+FROM Member m
+JOIN Membership ms ON ms.MembershipId = m.MemberId
+WHERE m.MemberId = @MemberId)
+
+SET @MaxAtTime =
+(SELECT ms.DVDAtTime 
+FROM Member m
+JOIN Membership ms ON ms.MembershipId = m.MemberId
+WHERE m.MemberId = @MemberId)
+
+PRINT (@MaxPerMonth - @currentRented)
+PRINT (@MaxAtTime - @currentRented)
+
+
 
 -- Set movies as rented
 --UPDATE Rental
