@@ -22,40 +22,38 @@ WHERE MemberId = 1;
 
 SELECT * FROM Member;
 
-CREATE FUNCTION GetNextDVD (
+CREATE OR ALTER FUNCTION GetNextDVD (
 	@MemberId NUMERIC(12,0)
 )
-RETURNS NUMERIC(12,0)
+RETURNS NUMERIC(16,0)
 AS
 BEGIN
-	-- Check for a balance greater than or equal to 0
-	IF (SELECT Balance FROM member WHERE MemberId = @MemberId) >= 0
-		BEGIN
-			-- Needs to find the lowest queued dvd that is also on hand = 1
-			SELECT TOP 1 dc.DVDId
-			FROM DVD_Copy dc
-			INNER JOIN RentalQueue r ON r.DVDId = dc.DVDId
-			WHERE dc.DVDQtyOnHand = 1 AND r.QueuePosition = (SELECT MIN(QueuePosition) FROM RentalQueue)
+DECLARE @NextDVD SMALLINT,
+		@Balance SMALLINT
+
+SELECT @Balance = (SELECT Balance FROM member WHERE MemberId = @MemberId);
+
+SELECT @NextDVD =
+	-- Selects DVDCopyId where row number is 1
+	(SELECT DVDCopyId
+	 FROM
+	(
+		-- Finds the row number, dvdCopyId and queue position where the dvd is on hand and in the members queue
+		SELECT ROW_NUMBER() OVER (ORDER BY QueuePosition) AS row_num, dc.DVDCopyId
+		FROM DVD_Copy dc
+		INNER JOIN RentalQueue r ON r.DVDId = dc.DVDId
+		WHERE r.MemberId = @MemberId AND dc.DVDOnHand = 1
+	) AS tbl
+	WHERE row_num = 1)
+
+	-- Returns @NextDVD if the members balance is greater than or equal to 0
+	RETURN (
+		CASE
+			WHEN @Balance >= 0 THEN @NextDVD
+			ELSE 'Error, you currently have an outstanding balance.'
 		END
-
-	-- If members balance is negative throw an error and stop
-	ELSE
-		BEGIN
-			RAISERROR('Error, you currently have an outstanding balance.',12,1,@queue_maxPlus);
-		END;
-
-
--- working
-WITH cte_queue_item AS (
-	SELECT
-		ROW_NUMBER() OVER (ORDER BY QueuePosition) AS row_num, 
-		dc.DVDCopyId, QueuePosition
-FROM DVD_Copy dc
-INNER JOIN RentalQueue r ON r.DVDId = dc.DVDId
-WHERE r.MemberId = 1 AND dc.DVDOnHand = 1
-) SELECT DISTINCT DVDCopyId, QueuePosition
-FROM cte_queue_item
-WHERE row_num = 1
+		);
+END;
 
 
 SELECT * FROM DVD_Copy
