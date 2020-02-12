@@ -10,18 +10,6 @@ Homework wk. 3
 -- Takes customer ID as an input and returns the DVDId
 -- Returns NULL if there is no DVD's in stock or the queue is empty
 -- Performs error checking that the customers balance isnt negative
-
--- Add balance column to the member table
---ALTER TABLE member
---ADD Balance INT;
-
--- update member 1 with a negative balance
-UPDATE member
-SET Balance = -25
-WHERE MemberId = 1;
-
-SELECT * FROM Member;
-
 CREATE OR ALTER FUNCTION GetNextDVD (
 	@MemberId NUMERIC(12,0)
 )
@@ -47,6 +35,7 @@ SELECT @NextDVD =
 	WHERE row_num = 1)
 
 	-- Returns @NextDVD if the members balance is greater than or equal to 0
+	-- No way to use RAISERROR within a function, so I used a case the checks if the balance is greater than or equal to 0
 	RETURN (
 		CASE
 			WHEN @Balance >= 0 THEN @NextDVD
@@ -55,18 +44,62 @@ SELECT @NextDVD =
 		);
 END;
 
+-- Error handling testing
+-- Add balance column to the member table
+ALTER TABLE member
+ADD Balance INT;
 
-SELECT * FROM DVD_Copy
+-- update member 1 with a negative balance
+UPDATE member
+SET Balance = -25
+WHERE MemberId = 1;
 
-UPDATE DVD_Copy
-SET DVDQtyOnHand = 1
-WHERE DVDCopyId = 32
-
-
-SELECT * --DVDId 
-FROM RentalQueue
+-- verify balance is negative for member 1
+SELECT MemberId, Balance
+FROM Member
 WHERE MemberId = 1
 
+-- run the next dvd function
+SELECT dbo.GetNextDVD(1) AS 'Next DVD';
+
+-- Populate RentalQueue with test data for member 2
+INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+VALUES (2, 1, GETDATE(), 1),
+	   (2, 2, GETDATE(), 2),
+	   (2, 3, GETDATE(), 3)
+
+-- check member 2's rental queue
+SELECT *
+FROM RentalQueue
+WHERE MemberId = 2
+
+-- check GetNextDVD function for member 2
+SELECT dbo.GetNextDVD(2) AS 'Next DVD';
+
+-- check dvd's on hand
+SELECT * 
+FROM DVD_Copy
+WHERE DVDOnHand = 1
+
+-- Populate RentalQueue with test data for member 3
+INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+VALUES (3, 8, GETDATE(), 1),
+	   (3, 3, GETDATE(), 2),
+	   (3, 5, GETDATE(), 3)
+
+-- check member 3's rental queue
+SELECT *
+FROM RentalQueue
+WHERE MemberId = 3
+ORDER BY QueuePosition
+
+-- check GetNextDVD function for member 3
+SELECT dbo.GetNextDVD(3) AS 'Next DVD';
+
+-- check dvd's on hand
+SELECT * 
+FROM DVD_Copy
+WHERE DVDOnHand = 1
 
 -- 2.
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
