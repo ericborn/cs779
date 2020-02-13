@@ -36,6 +36,7 @@ SELECT @NextDVD =
 
 	-- Returns @NextDVD if the members balance is greater than or equal to 0
 	-- No way to use RAISERROR within a function, so I used a case the checks if the balance is greater than or equal to 0
+	-- It throws a conversion error since the return is expecting a SMALLINT from @Balance
 	RETURN (
 		CASE
 			WHEN @Balance >= 0 THEN @NextDVD
@@ -100,6 +101,27 @@ SELECT dbo.GetNextDVD(3) AS 'Next DVD';
 SELECT * 
 FROM DVD_Copy
 WHERE DVDOnHand = 1
+
+-- check member 4's rental queue
+SELECT *
+FROM RentalQueue
+WHERE MemberId = 4
+
+-- check GetNextDVD function for member 4
+SELECT dbo.GetNextDVD(4) AS 'Next DVD';
+
+-- Populate RentalQueue with test data for member 5
+INSERT INTO RentalQueue(MemberId, DVDId, DateAddedInQueue, QueuePosition)
+VALUES (5, 1, GETDATE(), 1),
+	   (5, 2, GETDATE(), 2)
+
+-- check member 5's rental queue
+SELECT *
+FROM RentalQueue
+WHERE MemberId = 5
+
+-- check GetNextDVD function for member 5
+SELECT dbo.GetNextDVD(5) AS 'Next DVD';
 
 -- 2.
 -- Take the customer ID as an IN parameter, return the number of DVDs the customer can rent before they reach the limits of their contract
