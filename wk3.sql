@@ -239,36 +239,68 @@ CREATE OR ALTER PROCEDURE PROC_DVD_Processing
 	@DVDCopyId_returned NUMERIC(16,0),
 	@Lost_DVD BIT
 AS
+BEGIN
+	DECLARE @additional_DVD_count SMALLINT,
+			@Next_dvd_id NUMERIC(16,0)
 
-DECLARE @DVD_count SMALLINT,
-		@Next_dvd_id NUMERIC(16,0)
+	-- check if the dvd was lost or not
+	-- if 0 just update rental and dvd copy
+	-- if 1 update member, rental and dvd copy
+	IF @Lost_DVD = 0
+		BEGIN
+			-- Updates rental table to show the member returned a dvd
+			UPDATE Rental
+			SET RentalReturnedDate = GETDATE()
+			WHERE MemberId = @member_id
 
+			-- Update DVD_Copy to show the DVD has been returned
+			UPDATE DVD_Copy
+			SET DVDOnHand = 1, DVDOnRent = 0
+			WHERE @DVDCopyId_returned = DVDCopyId
 
-IF @Lost_DVD = 0
-	BEGIN
-		-- Updates rental table to show the member returned a dvd
-		UPDATE Rental
-		SET RentalReturnedDate = GETDATE()
-		WHERE MemberId = @member_id
+		END
+	ELSE
+		BEGIN
+			-- updates member's balance with current balance minus 25 for a lost dvd
+			UPDATE Member
+			SET Balance = Balance - 25
+			WHERE MemberId = @member_id
 
-		-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
-		SELECT @DVD_count = (SELECT dbo.CountDVDLimits(@member_id));
+			-- Updates rental table to show the member returned a dvd
+			UPDATE Rental
+			SET RentalReturnedDate = GETDATE()
+			WHERE MemberId = @member_id
 
-		-- Run the next dvd function which finds the next dvd in the members queue
-		SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(1));
-	END
-ELSE
-	BEGIN
-		-- updates member's balance with current balance minus 25 for a lost dvd
-		UPDATE Member
-		SET Balance = Balance - 25
-		WHERE MemberId = @member_id
+			-- Update DVD_Copy to show the DVD was lost
+			UPDATE DVD_Copy
+			SET DVDLost = 1, DVDOnRent = 0
+			WHERE @DVDCopyId_returned = DVDCopyId
+		END
 
-		-- Updates rental table to show the member returned a dvd
-		UPDATE Rental
-		SET RentalReturnedDate = GETDATE()
-		WHERE MemberId = @member_id
-	END
+	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
+	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@member_id));
+
+	-- Run the next dvd function which finds the next dvd in the members queue
+	SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(@member_id));
+	
+	UPDATE Rental
+	SET MemberId = @member_id, DVDCopyId = @Next_dvd_id, 
+	RentalRequestDate = (SELECT DateAddedInQueue 
+						 FROM RentalQueue rq
+						 JOIN DVD d ON d.DVDId = rq.DVDId
+						 WHERE MemberId = @member_id AND rq.DVDId = @Next_dvd_id),
+	RentalShippedDate = GETDATE()
+	WHERE MemberId = @member_id AND DVDCopyId = @Next_dvd_id
+
+	EXEC DELETE_RENTAL_QUEUE @member_id = @member_id, @dvd_id = @Next_dvd_id
+
+END;
+
 
 SELECT * FROM Rental
+SELECT * FROM RentalQueue
 
+SELECT * --DateAddedInQueue 
+FROM RentalQueue rq
+JOIN DVD d ON d.DVDId = rq.DVDId
+WHERE MemberId = 1 AND rq.DVDId = 2
