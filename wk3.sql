@@ -254,9 +254,11 @@ BEGIN
 	IF @DVD_Lost = 0
 		BEGIN
 			-- Updates rental table to show the member returned a dvd
+			-- Filters on memberId, DVDCopyID where the movie has been shipped but not returned
 			UPDATE Rental
 			SET RentalReturnedDate = GETDATE()
-			WHERE MemberId = @memberId
+			WHERE MemberId = @memberId AND DVDCopyId = @DVDCopyId 
+			  AND RentalShippedDate IS NOT NULL AND RentalReturnedDate IS NULL
 
 			-- Update DVD_Copy to show the DVD has been returned
 			UPDATE DVD_Copy
@@ -271,9 +273,11 @@ BEGIN
 			WHERE MemberId = @memberId
 
 			-- Updates rental table to show the member returned a dvd
+			-- Filters on memberId, DVDCopyID where the movie has been shipped but not returned
 			UPDATE Rental
 			SET RentalReturnedDate = GETDATE()
-			WHERE MemberId = @memberId
+			WHERE MemberId = @memberId AND DVDCopyId = @DVDCopyId 
+			  AND RentalShippedDate IS NOT NULL AND RentalReturnedDate IS NULL
 
 			-- Update DVD_Copy to show the DVD was lost
 			UPDATE DVD_Copy
@@ -314,8 +318,8 @@ END;
 SET @MemberId = 1
 
 SET @DVDCopyId_1_returned = 31
---SET @DVDCopyId_2_returned = 41
---SET @DVDCopyId_3_returned = 22
+--SET @DVDCopyId_2_returned = 4
+--SET @DVDCopyId_3_returned = 12
 
 SET @Lost_DVD_1 = 0
 --SET @Lost_DVD_2 = 1
@@ -330,9 +334,9 @@ AND @DVDCopyId_3_returned IS NOT NULL
 		PRINT 1
 		PRINT 2
 		PRINT 3
-		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
-		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
-		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_3_returned, @Lost_DVD_3
+		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
+		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
+		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_3_returned, @Lost_DVD_3
 	END
 
 -- Checks DVDs 1 and 2 to not be null
@@ -341,8 +345,8 @@ AND @DVDCopyId_3_returned IS NULL
 	BEGIN
 		PRINT 1
 		PRINT 2
-		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
-		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
+		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
+		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
 	END
 
 -- Checks for only DVD 1 to not be null
@@ -350,8 +354,38 @@ IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NULL
 AND @DVDCopyId_3_returned IS NULL 
 	BEGIN
 		PRINT 1
-		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
+		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
 	END
+
+
+-- TESTING SETUP
+UPDATE Rental
+SET RentalReturnedDate = NULL
+WHERE RentalId in (2,3,4)
+
+UPDATE DVD_Copy
+SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
+WHERE DVDCopyId IN (4, 12, 31)
+
+UPDATE Member
+SET Balance = 0
+
+
+SELECT * FROM Member
+SELECT * FROM Rental
+WHERE MemberId = 1
+SELECT * FROM DVD_Copy
+WHERE DVDCopyId IN (4, 12, 31)
+
+
+
+INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE()),
+	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
+
+
+
+
 
 
 
