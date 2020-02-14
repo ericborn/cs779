@@ -209,27 +209,42 @@ SELECT dbo.CountDVDLimits(2) AS 'DVDs Remaining';
 -- 3.
 -- Create a trigger that will not allow a new rental row if the member has reached
 -- their maximum current or monthly DVD's
-CREATE TRIGGER Trig_Rental_Check_before_ship
-ON dbo.Rental
+CREATE OR ALTER TRIGGER Trig_Rental_Check_before_ship
+ON [dbo].[Rental]
 INSTEAD OF INSERT
 AS
+BEGIN
 DECLARE @MemberId NUMERIC(12,0),
 		@DVDRemaining SMALLINT
 
+-- Find the memberId and use the function CountDVDLimits to find the
+-- total DVD's the member currently has rented.
 SELECT @MemberId = ins.MemberId FROM INSERTED ins;
 SELECT @DVDRemaining = (SELECT dbo.CountDVDLimits(@MemberId));
+
+-- Insert into rental only if @DVDRemaining is greater than 0
+INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate)
+SELECT RentalId, MemberId, DVDCopyId, RentalRequestDate
+FROM INSERTED
+WHERE @DVDRemaining > 0
+
+-- if @DVDRemaining is less than or equal to 0, throw an error
 IF @DVDRemaining <= 0
 	BEGIN
 		RAISERROR('Member cannot rent another DVD at this time', 11,1)
-	END;
+	END
+END;
 
 -- Test should fail since member 2 has already rented 4 dvd's this month
 -- Populate Rental with a row for member 2
 INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate)
-VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 2, 1, GETDATE());
+VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE());
 
--- Stored proc that updates rental and dvd copy
+-- 4.
+-- Stored proc that updates rental and dvd copy, will be used inside the next function
 -- Takes memberId and the dvd copy id as inputs
+-- If the DVD_Lost bit is 0 then update to put the DVDOnHand to 1 and OnRent to 0
+-- If the DVD_Lost bit is 1 then update to put the DVDLost to 1,  OnRent to 0 and balance -25
 CREATE OR ALTER PROCEDURE PROC_DVD_Return
 	@memberId NUMERIC(12,0),
 	@DVDCopyId NUMERIC(16,0),
@@ -267,7 +282,6 @@ BEGIN
 		END
 END
 
--- 4.
 -- Write a stored procedure that implements the processing when a DVD is 
 -- returned in the mail from a customer and the next DVD is sent out.
 -- Customer returns a DVD or notes the DVD is lost in which case they are charged against their account.
@@ -286,7 +300,7 @@ END
 	DECLARE @additional_DVD_count SMALLINT,
 			@Next_dvd_id NUMERIC(16,0),
 			@num_of_dvds SMALLINT,
-			@num_lost SMALLINT,
+			--@num_lost SMALLINT,
 			@cnt SMALLINT = 1,
 			@statement VARCHAR(MAX)
 			-- Test variables
@@ -298,13 +312,27 @@ END
 			@Lost_DVD_2 BIT = NULL,
 			@Lost_DVD_3 BIT = NULL
 
-SET @DVDCopyId_1_returned = 7
-SET @DVDCopyId_2_returned = 15
---SET @DVDCopyId_3_returned = 10
+SET @member_id = 1
+
+SET @DVDCopyId_1_returned = 31
+SET @DVDCopyId_2_returned = 41
+--SET @DVDCopyId_3_returned = 0
+
+--SELECT * FROM Member
+--SELECT * FROM Rental
+--WHERE MemberId = 1
+
+SELECT * FROM DVD_Copy
+
+INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE())
+	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
+
+--SELECT NEXT VALUE FOR dbo.RentalId_Seq
 
 SET @Lost_DVD_1 = 0
 SET @Lost_DVD_2 = 1
-SET @Lost_DVD_3 = 0
+--SET @Lost_DVD_3 = 0
 
 SELECT @num_of_dvds = (SELECT 
 						CASE
@@ -315,23 +343,22 @@ SELECT @num_of_dvds = (SELECT
 
 --PRINT @num_of_dvds
 
+select * from RentalHistory
+
 -- Loop runs from 1 to 3 depending on how many dvd's 
 -- have been returned via the input parameters
 -- Uses dynamic SQL to concatenate the PROC_DVD_Return 
 -- stored proc with the DVDCopyId's that were returned
 WHILE @cnt <= @num_of_dvds
 BEGIN
-	--PRINT 'UPDATE DVD' + CAST(@cnt AS VARCHAR)
 	SET @statement = 'PROC_DVD_Return @memberId = @member_id,
 					  @DVDCopyId = ' + '@DVDCopyId_' 
 					  + CAST(@cnt AS VARCHAR) + '_returned, @DVD_Lost = ' + 
 					  '@Lost_DVD_' + CAST(@cnt AS VARCHAR) 
-	PRINT @statement
-	-- EXEC(@statement)
+	--PRINT @statement
+	EXEC(@statement)
 	SET @cnt = @cnt + 1
 END
-
-	ELSE
 
 
 	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
