@@ -234,14 +234,44 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 2, 1, GETDATE());
 -- Customer returns a DVD or notes the DVD is lost in which case they are charged against their account.
 -- Lost dvd is indicated by a 1 in the @Lost_DVD parameter
 -- Initiate function from question 2 to return the number of additional dvds which can be rented.
-CREATE OR ALTER PROCEDURE PROC_DVD_Processing
-	@member_id NUMERIC(12,0),
-	@DVDCopyId_returned NUMERIC(16,0),
-	@Lost_DVD BIT
-AS
-BEGIN
+--CREATE OR ALTER PROCEDURE PROC_DVD_Processing
+--	@member_id NUMERIC(12,0),
+--	@DVDCopyId_1_returned NUMERIC(16,0),
+--	@DVDCopyId_2_returned NUMERIC(16,0) = NULL,
+--	@DVDCopyId_3_returned NUMERIC(16,0) = NULL,
+--	@Lost_DVD BIT
+--AS
+--BEGIN
 	DECLARE @additional_DVD_count SMALLINT,
-			@Next_dvd_id NUMERIC(16,0)
+			@Next_dvd_id NUMERIC(16,0),
+			@num_of_dvds SMALLINT,
+			@cnt SMALLINT = 0
+			-- Test variables
+			,@member_id NUMERIC(12,0),
+			@DVDCopyId_1_returned NUMERIC(16,0),
+			@DVDCopyId_2_returned NUMERIC(16,0) = NULL,
+			@DVDCopyId_3_returned NUMERIC(16,0) = NULL,
+			@Lost_DVD BIT
+
+SET @DVDCopyId_1_returned = 7
+--SET @DVDCopyId_2_returned = 15
+--SET @DVDCopyId_3_returned = 10
+
+SELECT @num_of_dvds = (SELECT 
+						CASE
+							WHEN @DVDCopyId_3_returned IS NOT NULL THEN 3
+							WHEN @DVDCopyId_2_returned IS NOT NULL THEN 2
+							ELSE 1
+						END)
+--PRINT @num_of_dvds
+
+-- Loop runs from 0 to 2 depending on how many dvd's 
+-- have been returned via the input parameters
+WHILE @cnt < @num_of_dvds
+BEGIN
+	PRINT 'UPDATE DVD' + CAST(@cnt AS VARCHAR)
+	SET @cnt = @cnt + 1
+END
 
 	-- check if the dvd was lost or not
 	-- if 0 just update rental and dvd copy
