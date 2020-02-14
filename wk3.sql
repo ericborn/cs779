@@ -302,6 +302,7 @@ END;
 --AS
 --BEGIN
 	DECLARE @additional_DVD_count SMALLINT,
+			@Next_dvd_copy_id NUMERIC(16,0),
 			@Next_dvd_id NUMERIC(16,0),
 			@parameterDefinition NVARCHAR(200),
 			@cnt SMALLINT = 1,
@@ -318,12 +319,12 @@ END;
 SET @MemberId = 1
 
 SET @DVDCopyId_1_returned = 31
---SET @DVDCopyId_2_returned = 4
---SET @DVDCopyId_3_returned = 12
+SET @DVDCopyId_2_returned = 4
+SET @DVDCopyId_3_returned = 12
 
 SET @Lost_DVD_1 = 0
---SET @Lost_DVD_2 = 1
---SET @Lost_DVD_3 = 0
+SET @Lost_DVD_2 = 0
+SET @Lost_DVD_3 = 0
 
 -- Setup as 3 individual IF statements since you cannot do elif in SQL and 
 -- CASE will not trigger an EXEC statement
@@ -331,9 +332,6 @@ SET @Lost_DVD_1 = 0
 IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NOT NULL
 AND @DVDCopyId_3_returned IS NOT NULL
 	BEGIN
-		PRINT 1
-		PRINT 2
-		PRINT 3
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_3_returned, @Lost_DVD_3
@@ -343,8 +341,6 @@ AND @DVDCopyId_3_returned IS NOT NULL
 IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NOT NULL 
 AND @DVDCopyId_3_returned IS NULL 
 	BEGIN
-		PRINT 1
-		PRINT 2
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
 	END
@@ -353,10 +349,116 @@ AND @DVDCopyId_3_returned IS NULL
 IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NULL 
 AND @DVDCopyId_3_returned IS NULL 
 	BEGIN
-		PRINT 1
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
 	END
 
+-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
+SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@MemberId));
+--PRINT @additional_DVD_count
+
+IF @additional_DVD_count = 3
+	BEGIN
+		PRINT 3
+		-- #1
+		-- Run the next dvd function which finds the next dvd in the members queue
+		SELECT @Next_dvd_copy_id = (SELECT dbo.GetNextDVD(@MemberId));
+		PRINT @Next_dvd_copy_id
+		IF @Next_dvd_copy_id IS NOT NULL
+			BEGIN
+				-- Find the DVDId from the DVDCopyID
+				SELECT @Next_dvd_id = (SELECT DVDId
+									   FROM DVD_Copy 
+									   WHERE DVDCopyId = @Next_dvd_copy_id)
+				
+				-- Insert the info into the rental table
+				INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+				VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @MemberId, @Next_dvd_copy_id, GETDATE(), GETDATE());
+				
+				-- Update dvd_copy to indicate the dvd has been rented
+				UPDATE DVD_Copy
+				SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
+				WHERE DVDCopyId = @Next_dvd_copy_id
+
+				-- Delete the dvd from the rental queue
+				EXEC DELETE_RENTAL_QUEUE @MemberId, @Next_dvd_id
+			END
+		ELSE
+			BEGIN
+				PRINT 'No items in your queue are currently available'
+
+		-- #2
+		-- Run the next dvd function which finds the next dvd in the members queue
+		SELECT @Next_dvd_copy_id = (SELECT dbo.GetNextDVD(@MemberId));
+		PRINT @Next_dvd_copy_id
+		IF @Next_dvd_copy_id IS NOT NULL
+			BEGIN
+				-- Find the DVDId from the DVDCopyID
+				SELECT @Next_dvd_id = (SELECT DVDId
+									   FROM DVD_Copy 
+									   WHERE DVDCopyId = @Next_dvd_copy_id)
+				
+				-- Insert the info into the rental table
+				INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+				VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @MemberId, @Next_dvd_copy_id, GETDATE(), GETDATE());
+				
+				-- Update dvd_copy to indicate the dvd has been rented
+				UPDATE DVD_Copy
+				SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
+				WHERE DVDCopyId = @Next_dvd_copy_id
+
+				-- Delete the dvd from the rental queue
+				EXEC DELETE_RENTAL_QUEUE @MemberId, @Next_dvd_id
+			END
+		ELSE
+			BEGIN
+				PRINT 'No items in your queue are currently available'
+		
+		-- #3
+		-- Run the next dvd function which finds the next dvd in the members queue
+		SELECT @Next_dvd_copy_id = (SELECT dbo.GetNextDVD(@MemberId));
+		PRINT @Next_dvd_copy_id
+		IF @Next_dvd_copy_id IS NOT NULL
+			BEGIN
+				-- Find the DVDId from the DVDCopyID
+				SELECT @Next_dvd_id = (SELECT DVDId
+									   FROM DVD_Copy 
+									   WHERE DVDCopyId = @Next_dvd_copy_id)
+				
+				-- Insert the info into the rental table
+				INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+				VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @MemberId, @Next_dvd_copy_id, GETDATE(), GETDATE());
+				
+				-- Update dvd_copy to indicate the dvd has been rented
+				UPDATE DVD_Copy
+				SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
+				WHERE DVDCopyId = @Next_dvd_copy_id
+
+				-- Delete the dvd from the rental queue
+				EXEC DELETE_RENTAL_QUEUE @MemberId, @Next_dvd_id
+			END
+		ELSE
+			BEGIN
+				PRINT 'No items in your queue are currently available'
+	END
+
+IF @additional_DVD_count = 2
+	BEGIN
+		PRINT 2
+		-- Run the next dvd function which finds the next dvd in the members queue
+		SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(@MemberId));
+		PRINT @Next_dvd_id
+		PRINT 'RUN DELETE DVD'
+		PRINT 'SELECT NEXTDVD AGAIN'
+		PRINT 'RUN DELETE DVD'
+	END
+
+IF @additional_DVD_count = 1
+	BEGIN
+		PRINT 1
+		-- Run the next dvd function which finds the next dvd in the members queue
+		SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(@MemberId));
+		PRINT @Next_dvd_id
+	END
 
 -- TESTING SETUP
 UPDATE Rental
@@ -370,30 +472,35 @@ WHERE DVDCopyId IN (4, 12, 31)
 UPDATE Member
 SET Balance = 0
 
+DELETE FROM RentalQueue
+WHERE MemberId = 1 
+
+INSERT INTO RentalQueue
+VALUES (1, 3, GETDATE(), 1),
+	   (1, 5, GETDATE(), 2),
+	   (1, 6, GETDATE(), 3),
+	   (1, 7, GETDATE(), 4)
 
 SELECT * FROM Member
+WHERE MemberId = 1
 SELECT * FROM Rental
 WHERE MemberId = 1
 SELECT * FROM DVD_Copy
-WHERE DVDCopyId IN (4, 12, 31)
+WHERE DVDCopyId IN (4, 12, 31, 42, 57)
+SELECT * FROM RentalQueue
+WHERE MemberId = 1
 
+UPDATE DVD_Copy
+SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
+WHERE DVDCopyId IN (23, 27, 42) 
 
+--DELETE FROM RentalQueue
+--WHERE MemberId = 1
 
-INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
-VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE()),
-	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
+--INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+--VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
 
-
-
-
-
-
-
-	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
-	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@MemberId));
-
-	-- Run the next dvd function which finds the next dvd in the members queue
-	SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(@MemberId));
 	
 	UPDATE Rental
 	SET MemberId = @MemberId, DVDCopyId = @Next_dvd_id, 
@@ -404,13 +511,12 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE()),
 	RentalShippedDate = GETDATE()
 	WHERE MemberId = @MemberId AND DVDCopyId = @Next_dvd_id
 
-	EXEC DELETE_RENTAL_QUEUE @member_id = @MemberId, @dvd_id = @Next_dvd_id
+	
 
 END;
 
 
-SELECT * FROM Rental
-SELECT * FROM RentalQueue
+
 
 SELECT * --DateAddedInQueue 
 FROM RentalQueue rq
