@@ -207,7 +207,7 @@ WHERE RentalID = 26;
 SELECT dbo.CountDVDLimits(2) AS 'DVDs Remaining';
 
 -- 3.
--- Create a trigger that wont allow a new rental row if the member has reached
+-- Create a trigger that will not allow a new rental row if the member has reached
 -- their maximum current or monthly DVD's
 CREATE TRIGGER Trig_Rental_Check_before_ship
 ON dbo.Rental
@@ -227,3 +227,48 @@ IF @DVDRemaining <= 0
 -- Populate Rental with a row for member 2
 INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate)
 VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 2, 1, GETDATE());
+
+-- 4.
+-- Write a stored procedure that implements the processing when a DVD is 
+-- returned in the mail from a customer and the next DVD is sent out.
+-- Customer returns a DVD or notes the DVD is lost in which case they are charged against their account.
+-- Lost dvd is indicated by a 1 in the @Lost_DVD parameter
+-- Initiate function from question 2 to return the number of additional dvds which can be rented.
+CREATE OR ALTER PROCEDURE PROC_DVD_Processing
+	@member_id NUMERIC(12,0),
+	@DVDCopyId_returned NUMERIC(16,0),
+	@Lost_DVD BIT
+AS
+
+DECLARE @DVD_count SMALLINT,
+		@Next_dvd_id NUMERIC(16,0)
+
+
+IF @Lost_DVD = 0
+	BEGIN
+		-- Updates rental table to show the member returned a dvd
+		UPDATE Rental
+		SET RentalReturnedDate = GETDATE()
+		WHERE MemberId = @member_id
+
+		-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
+		SELECT @DVD_count = (SELECT dbo.CountDVDLimits(@member_id));
+
+		-- Run the next dvd function which finds the next dvd in the members queue
+		SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(1));
+	END
+ELSE
+	BEGIN
+		-- updates member's balance with current balance minus 25 for a lost dvd
+		UPDATE Member
+		SET Balance = Balance - 25
+		WHERE MemberId = @member_id
+
+		-- Updates rental table to show the member returned a dvd
+		UPDATE Rental
+		SET RentalReturnedDate = GETDATE()
+		WHERE MemberId = @member_id
+	END
+
+SELECT * FROM Rental
+
