@@ -305,9 +305,26 @@ AS
 									   WHERE DVDCopyId = @Next_dvd_copy_id)
 				
 				-- Insert the info into the rental table
-				INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
-				VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @MemberId, @Next_dvd_copy_id, GETDATE(), GETDATE());
+				-- date values arent working on this insert for some reason, tried using getdate or a fixed date
+				-- neither worked. Going to just use an update instead of continuing to troubleshoot
+				INSERT INTO Rental(RentalId, MemberId, DVDCopyId)
+				VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @MemberId, @Next_dvd_copy_id);
 				
+				-- updating RentalShippedDate since insert isnt working for some reason
+				--UPDATE Rental
+				--SET RentalShippedDate = GETDATE()
+				--WHERE MemberId = @MemberId AND DVDCopyId = @Next_dvd_copy_id
+
+				-- updating rental with the original date added from the queue table
+				UPDATE Rental
+				SET MemberId = @MemberId, DVDCopyId = @Next_dvd_copy_id, 
+				RentalRequestDate = (SELECT DateAddedInQueue 
+									 FROM RentalQueue rq
+									 JOIN DVD d ON d.DVDId = rq.DVDId
+									 WHERE MemberId = @MemberId AND rq.DVDId = @Next_dvd_id),
+				RentalShippedDate = GETDATE()
+				WHERE MemberId = @MemberId AND DVDCopyId = @Next_dvd_copy_id
+
 				-- Update dvd_copy to indicate the dvd has been rented
 				UPDATE DVD_Copy
 				SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
@@ -356,12 +373,14 @@ SET @MemberId = 1
 
 SET @DVDCopyId_1_returned = 31
 SET @DVDCopyId_2_returned = 4
---SET @DVDCopyId_3_returned = 12
+SET @DVDCopyId_3_returned = 12
 
 SET @Lost_DVD_1 = 0
 SET @Lost_DVD_2 = 0
---SET @Lost_DVD_3 = 0
+SET @Lost_DVD_3 = 1
 
+-- I tried to set this up as a while loop using dynamic variable names dependent on
+-- how many dvd's were returned but couldn't get it to work.
 -- Setup as 3 individual IF statements since you cannot do elif in SQL and 
 -- CASE will not trigger an EXEC statement
 -- Checks for all 3 DVDs to not be null
@@ -373,7 +392,7 @@ AND @DVDCopyId_3_returned IS NOT NULL
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_3_returned, @Lost_DVD_3
 	END
 
--- Checks DVDs 1 and 2 to not be null
+-- Checks DVDs 1 and 2 to not be null and 3 to be null
 IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NOT NULL 
 AND @DVDCopyId_3_returned IS NULL 
 	BEGIN
@@ -381,7 +400,7 @@ AND @DVDCopyId_3_returned IS NULL
 		EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
 	END
 
--- Checks for only DVD 1 to not be null
+-- Checks for only DVD 1 to not be null and the other 2 as null
 IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NULL 
 AND @DVDCopyId_3_returned IS NULL 
 	BEGIN
@@ -390,30 +409,14 @@ AND @DVDCopyId_3_returned IS NULL
 
 -- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
 SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@MemberId));
-PRINT @additional_DVD_count
 
-
+-- Runs a loop executing the rent dvd stored proc once for each additional DVD
+-- the member is able to rent
 WHILE @cnt <= @additional_DVD_count
 	BEGIN
 	EXEC PROC_RENT_DVD @MemberId
-	--PRINT 'RUNNING PROC_RENT_DVD'
 	SET @cnt = @cnt + 1
 	END
-
--- runs
-IF @additional_DVD_count = 3
-	EXEC PROC_RENT_DVD @MemberId
-	EXEC PROC_RENT_DVD @MemberId
-	EXEC PROC_RENT_DVD @MemberId
-
-IF @additional_DVD_count = 2
-	EXEC PROC_RENT_DVD @MemberId
-	EXEC PROC_RENT_DVD @MemberId
-
-IF @additional_DVD_count = 1
-	EXEC PROC_RENT_DVD @MemberId
-
-
 
 -- TESTING SETUP
 UPDATE Rental
@@ -430,16 +433,27 @@ SET Balance = 0
 DELETE FROM RentalQueue
 WHERE MemberId = 1 
 
+DELETE FROM Rental
+WHERE RentalId > 4
+
+--INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate, RentalReturnedDate)
+--VALUES (1, 1, 1, '20010101',  GETDATE(), GETDATE()),
+--	   (2, 1, 4, '20010101',  GETDATE(), NULL),
+--	   (3, 1, 12, '20010101',  GETDATE(), NULL),
+--	   (4, 1, 31, '20010101',  GETDATE(), NULL)
+
 INSERT INTO RentalQueue
-VALUES (1, 3, GETDATE(), 1),
-	   (1, 5, GETDATE(), 2),
-	   (1, 6, GETDATE(), 3),
-	   (1, 7, GETDATE(), 4)
+VALUES (1, 8, '20200113', 1),
+	   (1, 5, '20020101', 2),
+	   (1, 6, '20030211', 3),
+	   (1, 7, '20040505', 4),
+	   (1, 3, '20180624', 5)
 
 UPDATE DVD_Copy
 SET DVDOnHand = 1, DVDOnRent = 0, DVDLost = 0
 WHERE DVDCopyId IN (42, 57) 
 
+-- VIEW DATA
 SELECT * FROM Member
 WHERE MemberId = 1
 SELECT * FROM Rental
@@ -449,6 +463,11 @@ WHERE DVDCopyId IN (4, 12, 31, 42, 57)
 SELECT * FROM RentalQueue
 WHERE MemberId = 1
 
+
+
+UPDATE Rental
+SET RentalShippedDate = GETDATE()
+WHERE RentalId = 35
 
 --DELETE FROM RentalQueue
 --WHERE MemberId = 1
