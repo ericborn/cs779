@@ -322,11 +322,11 @@ SET @DVDCopyId_2_returned = 41
 --SELECT * FROM Rental
 --WHERE MemberId = 1
 
-SELECT * FROM DVD_Copy
+--SELECT * FROM DVD_Copy
 
-INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
-VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE())
-	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
+--INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
+--VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE()),
+--	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
 
 --SELECT NEXT VALUE FOR dbo.RentalId_Seq
 
@@ -343,7 +343,7 @@ SELECT @num_of_dvds = (SELECT
 
 --PRINT @num_of_dvds
 
-select * from RentalHistory
+--select * from RentalHistory
 
 -- Loop runs from 1 to 3 depending on how many dvd's 
 -- have been returned via the input parameters
@@ -351,10 +351,8 @@ select * from RentalHistory
 -- stored proc with the DVDCopyId's that were returned
 WHILE @cnt <= @num_of_dvds
 BEGIN
-	SET @statement = 'PROC_DVD_Return @memberId = @member_id,
-					  @DVDCopyId = ' + '@DVDCopyId_' 
-					  + CAST(@cnt AS VARCHAR) + '_returned, @DVD_Lost = ' + 
-					  '@Lost_DVD_' + CAST(@cnt AS VARCHAR) 
+	SET @statement = 'PROC_DVD_Return @memberId = ' +
+					  CAST(@member_id AS VARCHAR) +', @DVDCopyId = ' + '@DVDCopyId_' + CAST(@cnt AS VARCHAR) + '_returned, @DVD_Lost = ' + '@Lost_DVD_' + CAST(@cnt AS VARCHAR) 
 	--PRINT @statement
 	EXEC(@statement)
 	SET @cnt = @cnt + 1
