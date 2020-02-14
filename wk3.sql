@@ -352,28 +352,26 @@ SELECT @num_of_dvds = (SELECT
 -- have been returned via the input parameters
 -- Uses dynamic SQL to concatenate the PROC_DVD_Return 
 -- stored proc with the DVDCopyId's that were returned
-WHILE @cnt <= @num_of_dvds
-	BEGIN
-		--DECLARE @member_id NUMERIC(12,0)
-		--PRINT @DVDCopyId_1_returned
-		--PRINT @DVDCopyId_2_returned
-		SELECT @DVDNum = N'@DVDCopyId_' + CAST(@cnt AS VARCHAR) + '_returned'
-		--SET @memberId = 1
-		SELECT @DVD_Lost = N'@Lost_DVD_' + CAST(@cnt AS VARCHAR)
-		SET @statement = N'PROC_DVD_Return @a + @b + @c'
-		SET @parameterDefinition = N'@a INT, @b INT, @c INT'
-		--SET @statement = N'dbo.PROC_DVD_Return @memberId = ' +
-		--				  CAST(@member_id AS VARCHAR) +', @DVDCopyId = ' + @DVDNum + ', @DVD_Lost = ' + '@Lost_DVD_' + CAST(@cnt AS VARCHAR)
-		PRINT @DVDNum
-		PRINT @DVD_Lost
-		PRINT @statement
-		PRINT @parameterDefinition
-		--PRINT @statement
-		EXECUTE sp_execute @statement, @parameterDefinition, @a = @member_id, @b = @DVDNum, @c = @DVD_Lost
-		SET @cnt = @cnt + 1
-	END
-
-EXECUTE sp_execute PROC_DVD_Return 1, 1, 0
+--WHILE @cnt <= @num_of_dvds
+--	BEGIN
+--		--DECLARE @member_id NUMERIC(12,0)
+--		--PRINT @DVDCopyId_1_returned
+--		--PRINT @DVDCopyId_2_returned
+--		SELECT @DVDNum = N'@DVDCopyId_' + CAST(@cnt AS VARCHAR) + '_returned'
+--		--SET @memberId = 1
+--		SELECT @DVD_Lost = N'@Lost_DVD_' + CAST(@cnt AS VARCHAR)
+--		SET @statement = N'PROC_DVD_Return @a + @b + @c'
+--		SET @parameterDefinition = N'@a INT, @b INT, @c INT'
+--		--SET @statement = N'dbo.PROC_DVD_Return @memberId = ' +
+--		--				  CAST(@member_id AS VARCHAR) +', @DVDCopyId = ' + @DVDNum + ', @DVD_Lost = ' + '@Lost_DVD_' + CAST(@cnt AS VARCHAR)
+--		PRINT @DVDNum
+--		PRINT @DVD_Lost
+--		PRINT @statement
+--		PRINT @parameterDefinition
+--		--PRINT @statement
+--		EXECUTE sp_execute @statement, @parameterDefinition, @a = @member_id, @b = @DVDNum, @c = @DVD_Lost
+--		SET @cnt = @cnt + 1
+--	END
 
 	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
 	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@member_id));
