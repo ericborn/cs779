@@ -385,7 +385,7 @@ IF @additional_DVD_count = 3
 		ELSE
 			BEGIN
 				PRINT 'No items in your queue are currently available'
-
+			END
 		-- #2
 		-- Run the next dvd function which finds the next dvd in the members queue
 		SELECT @Next_dvd_copy_id = (SELECT dbo.GetNextDVD(@MemberId));
@@ -412,6 +412,7 @@ IF @additional_DVD_count = 3
 		ELSE
 			BEGIN
 				PRINT 'No items in your queue are currently available'
+			END
 		
 		-- #3
 		-- Run the next dvd function which finds the next dvd in the members queue
@@ -439,6 +440,7 @@ IF @additional_DVD_count = 3
 		ELSE
 			BEGIN
 				PRINT 'No items in your queue are currently available'
+			END
 	END
 
 IF @additional_DVD_count = 2
