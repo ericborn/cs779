@@ -245,42 +245,42 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE());
 -- Takes memberId and the dvd copy id as inputs
 -- If the DVD_Lost bit is 0 then update to put the DVDOnHand to 1 and OnRent to 0
 -- If the DVD_Lost bit is 1 then update to put the DVDLost to 1,  OnRent to 0 and balance -25
-CREATE OR ALTER PROCEDURE PROC_DVD_Return
-	@memberId NUMERIC(12,0),
-	@DVDCopyId NUMERIC(16,0),
-	@DVD_Lost BIT = 0
-AS
-BEGIN
-	IF @DVD_Lost = 0
-		BEGIN
-			-- Updates rental table to show the member returned a dvd
-			UPDATE Rental
-			SET RentalReturnedDate = GETDATE()
-			WHERE MemberId = @memberId
+--CREATE OR ALTER PROCEDURE PROC_DVD_Return
+--	@MemberId NUMERIC(12,0),
+--	@DVDCopyId NUMERIC(16,0),
+--	@DVD_Lost BIT = 0
+--AS
+--BEGIN
+--	IF @DVD_Lost = 0
+--		BEGIN
+--			-- Updates rental table to show the member returned a dvd
+--			UPDATE Rental
+--			SET RentalReturnedDate = GETDATE()
+--			WHERE MemberId = @memberId
 
-			-- Update DVD_Copy to show the DVD has been returned
-			UPDATE DVD_Copy
-			SET DVDOnHand = 1, DVDOnRent = 0
-			WHERE DVDCopyId = @DVDCopyId
-		END
-	ELSE
-		BEGIN
-			-- updates member's balance with current balance minus 25 for a lost dvd
-			UPDATE Member
-			SET Balance = Balance - 25
-			WHERE MemberId = @memberId
+--			-- Update DVD_Copy to show the DVD has been returned
+--			UPDATE DVD_Copy
+--			SET DVDOnHand = 1, DVDOnRent = 0
+--			WHERE DVDCopyId = @DVDCopyId
+--		END
+--	ELSE
+--		BEGIN
+--			-- updates member's balance with current balance minus 25 for a lost dvd
+--			UPDATE Member
+--			SET Balance = Balance - 25
+--			WHERE MemberId = @memberId
 
-			-- Updates rental table to show the member returned a dvd
-			UPDATE Rental
-			SET RentalReturnedDate = GETDATE()
-			WHERE MemberId = @memberId
+--			-- Updates rental table to show the member returned a dvd
+--			UPDATE Rental
+--			SET RentalReturnedDate = GETDATE()
+--			WHERE MemberId = @memberId
 
-			-- Update DVD_Copy to show the DVD was lost
-			UPDATE DVD_Copy
-			SET DVDLost = 1, DVDOnRent = 0
-			WHERE DVDCopyId = @DVDCopyId
-		END
-END
+--			-- Update DVD_Copy to show the DVD was lost
+--			UPDATE DVD_Copy
+--			SET DVDLost = 1, DVDOnRent = 0
+--			WHERE DVDCopyId = @DVDCopyId
+--		END
+--END;
 
 -- Write a stored procedure that implements the processing when a DVD is 
 -- returned in the mail from a customer and the next DVD is sent out.
@@ -300,9 +300,12 @@ END
 	DECLARE @additional_DVD_count SMALLINT,
 			@Next_dvd_id NUMERIC(16,0),
 			@num_of_dvds SMALLINT,
+			@DVDNum VARCHAR(50),
+			@DVD_Lost VARCHAR(50),
+			@parameterDefinition NVARCHAR(200),
 			--@num_lost SMALLINT,
 			@cnt SMALLINT = 1,
-			@statement VARCHAR(MAX)
+			@statement VARCHAR(200)
 			-- Test variables
 			,@member_id NUMERIC(12,0),
 			@DVDCopyId_1_returned NUMERIC(16,0),
@@ -350,14 +353,27 @@ SELECT @num_of_dvds = (SELECT
 -- Uses dynamic SQL to concatenate the PROC_DVD_Return 
 -- stored proc with the DVDCopyId's that were returned
 WHILE @cnt <= @num_of_dvds
-BEGIN
-	SET @statement = 'PROC_DVD_Return @memberId = ' +
-					  CAST(@member_id AS VARCHAR) +', @DVDCopyId = ' + '@DVDCopyId_' + CAST(@cnt AS VARCHAR) + '_returned, @DVD_Lost = ' + '@Lost_DVD_' + CAST(@cnt AS VARCHAR) 
-	--PRINT @statement
-	EXEC(@statement)
-	SET @cnt = @cnt + 1
-END
+	BEGIN
+		--DECLARE @member_id NUMERIC(12,0)
+		--PRINT @DVDCopyId_1_returned
+		--PRINT @DVDCopyId_2_returned
+		SELECT @DVDNum = N'@DVDCopyId_' + CAST(@cnt AS VARCHAR) + '_returned'
+		--SET @memberId = 1
+		SELECT @DVD_Lost = N'@Lost_DVD_' + CAST(@cnt AS VARCHAR)
+		SET @statement = N'PROC_DVD_Return @a + @b + @c'
+		SET @parameterDefinition = N'@a INT, @b INT, @c INT'
+		--SET @statement = N'dbo.PROC_DVD_Return @memberId = ' +
+		--				  CAST(@member_id AS VARCHAR) +', @DVDCopyId = ' + @DVDNum + ', @DVD_Lost = ' + '@Lost_DVD_' + CAST(@cnt AS VARCHAR)
+		PRINT @DVDNum
+		PRINT @DVD_Lost
+		PRINT @statement
+		PRINT @parameterDefinition
+		--PRINT @statement
+		EXECUTE sp_execute @statement, @parameterDefinition, @a = @member_id, @b = @DVDNum, @c = @DVD_Lost
+		SET @cnt = @cnt + 1
+	END
 
+EXECUTE sp_execute PROC_DVD_Return 1, 1, 0
 
 	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
 	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@member_id));
