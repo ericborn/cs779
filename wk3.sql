@@ -245,42 +245,42 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE());
 -- Takes memberId and the dvd copy id as inputs
 -- If the DVD_Lost bit is 0 then update to put the DVDOnHand to 1 and OnRent to 0
 -- If the DVD_Lost bit is 1 then update to put the DVDLost to 1,  OnRent to 0 and balance -25
---CREATE OR ALTER PROCEDURE PROC_DVD_Return
---	@MemberId NUMERIC(12,0),
---	@DVDCopyId NUMERIC(16,0),
---	@DVD_Lost BIT = 0
---AS
---BEGIN
---	IF @DVD_Lost = 0
---		BEGIN
---			-- Updates rental table to show the member returned a dvd
---			UPDATE Rental
---			SET RentalReturnedDate = GETDATE()
---			WHERE MemberId = @memberId
+CREATE OR ALTER PROCEDURE PROC_DVD_Return
+	@MemberId NUMERIC(12,0),
+	@DVDCopyId NUMERIC(16,0),
+	@DVD_Lost BIT = 0
+AS
+BEGIN
+	IF @DVD_Lost = 0
+		BEGIN
+			-- Updates rental table to show the member returned a dvd
+			UPDATE Rental
+			SET RentalReturnedDate = GETDATE()
+			WHERE MemberId = @memberId
 
---			-- Update DVD_Copy to show the DVD has been returned
---			UPDATE DVD_Copy
---			SET DVDOnHand = 1, DVDOnRent = 0
---			WHERE DVDCopyId = @DVDCopyId
---		END
---	ELSE
---		BEGIN
---			-- updates member's balance with current balance minus 25 for a lost dvd
---			UPDATE Member
---			SET Balance = Balance - 25
---			WHERE MemberId = @memberId
+			-- Update DVD_Copy to show the DVD has been returned
+			UPDATE DVD_Copy
+			SET DVDOnHand = 1, DVDOnRent = 0
+			WHERE DVDCopyId = @DVDCopyId
+		END
+	ELSE
+		BEGIN
+			-- updates member's balance with current balance minus 25 for a lost dvd
+			UPDATE Member
+			SET Balance = Balance - 25
+			WHERE MemberId = @memberId
 
---			-- Updates rental table to show the member returned a dvd
---			UPDATE Rental
---			SET RentalReturnedDate = GETDATE()
---			WHERE MemberId = @memberId
+			-- Updates rental table to show the member returned a dvd
+			UPDATE Rental
+			SET RentalReturnedDate = GETDATE()
+			WHERE MemberId = @memberId
 
---			-- Update DVD_Copy to show the DVD was lost
---			UPDATE DVD_Copy
---			SET DVDLost = 1, DVDOnRent = 0
---			WHERE DVDCopyId = @DVDCopyId
---		END
---END;
+			-- Update DVD_Copy to show the DVD was lost
+			UPDATE DVD_Copy
+			SET DVDLost = 1, DVDOnRent = 0
+			WHERE DVDCopyId = @DVDCopyId
+		END
+END;
 
 -- Write a stored procedure that implements the processing when a DVD is 
 -- returned in the mail from a customer and the next DVD is sent out.
@@ -299,15 +299,11 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE());
 --BEGIN
 	DECLARE @additional_DVD_count SMALLINT,
 			@Next_dvd_id NUMERIC(16,0),
-			@num_of_dvds SMALLINT,
-			@DVDNum VARCHAR(50),
-			@DVD_Lost VARCHAR(50),
 			@parameterDefinition NVARCHAR(200),
-			--@num_lost SMALLINT,
 			@cnt SMALLINT = 1,
 			@statement VARCHAR(200)
 			-- Test variables
-			,@member_id NUMERIC(12,0),
+			,@MemberId NUMERIC(12,0),
 			@DVDCopyId_1_returned NUMERIC(16,0),
 			@DVDCopyId_2_returned NUMERIC(16,0) = NULL,
 			@DVDCopyId_3_returned NUMERIC(16,0) = NULL,
@@ -315,80 +311,66 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE());
 			@Lost_DVD_2 BIT = NULL,
 			@Lost_DVD_3 BIT = NULL
 
-SET @member_id = 1
+SET @MemberId = 1
 
 SET @DVDCopyId_1_returned = 31
-SET @DVDCopyId_2_returned = 41
---SET @DVDCopyId_3_returned = 0
-
---SELECT * FROM Member
---SELECT * FROM Rental
---WHERE MemberId = 1
-
---SELECT * FROM DVD_Copy
-
---INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate)
---VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 3, 21, GETDATE(), GETDATE()),
---	   (NEXT VALUE FOR dbo.RentalId_Seq, 1, 41, GETDATE(), GETDATE());
-
---SELECT NEXT VALUE FOR dbo.RentalId_Seq
+--SET @DVDCopyId_2_returned = 41
+--SET @DVDCopyId_3_returned = 22
 
 SET @Lost_DVD_1 = 0
-SET @Lost_DVD_2 = 1
+--SET @Lost_DVD_2 = 1
 --SET @Lost_DVD_3 = 0
 
-SELECT @num_of_dvds = (SELECT 
-						CASE
-							WHEN @DVDCopyId_3_returned IS NOT NULL THEN 3
-							WHEN @DVDCopyId_2_returned IS NOT NULL THEN 2
-							ELSE 1
-						END)
+-- Setup as 3 individual IF statements since you cannot do elif in SQL and 
+-- CASE will not trigger an EXEC statement
+-- Checks for all 3 DVDs to not be null
+IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NOT NULL
+AND @DVDCopyId_3_returned IS NOT NULL
+	BEGIN
+		PRINT 1
+		PRINT 2
+		PRINT 3
+		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
+		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
+		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_3_returned, @Lost_DVD_3
+	END
 
---PRINT @num_of_dvds
+-- Checks DVDs 1 and 2 to not be null
+IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NOT NULL 
+AND @DVDCopyId_3_returned IS NULL 
+	BEGIN
+		PRINT 1
+		PRINT 2
+		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
+		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_2_returned, @Lost_DVD_2
+	END
 
---select * from RentalHistory
+-- Checks for only DVD 1 to not be null
+IF  @DVDCopyId_1_returned IS NOT NULL AND @DVDCopyId_2_returned IS NULL 
+AND @DVDCopyId_3_returned IS NULL 
+	BEGIN
+		PRINT 1
+		--EXEC PROC_DVD_Return @MemberId, @DVDCopyId_1_returned, @Lost_DVD_1
+	END
 
--- Loop runs from 1 to 3 depending on how many dvd's 
--- have been returned via the input parameters
--- Uses dynamic SQL to concatenate the PROC_DVD_Return 
--- stored proc with the DVDCopyId's that were returned
---WHILE @cnt <= @num_of_dvds
---	BEGIN
---		--DECLARE @member_id NUMERIC(12,0)
---		--PRINT @DVDCopyId_1_returned
---		--PRINT @DVDCopyId_2_returned
---		SELECT @DVDNum = N'@DVDCopyId_' + CAST(@cnt AS VARCHAR) + '_returned'
---		--SET @memberId = 1
---		SELECT @DVD_Lost = N'@Lost_DVD_' + CAST(@cnt AS VARCHAR)
---		SET @statement = N'PROC_DVD_Return @a + @b + @c'
---		SET @parameterDefinition = N'@a INT, @b INT, @c INT'
---		--SET @statement = N'dbo.PROC_DVD_Return @memberId = ' +
---		--				  CAST(@member_id AS VARCHAR) +', @DVDCopyId = ' + @DVDNum + ', @DVD_Lost = ' + '@Lost_DVD_' + CAST(@cnt AS VARCHAR)
---		PRINT @DVDNum
---		PRINT @DVD_Lost
---		PRINT @statement
---		PRINT @parameterDefinition
---		--PRINT @statement
---		EXECUTE sp_execute @statement, @parameterDefinition, @a = @member_id, @b = @DVDNum, @c = @DVD_Lost
---		SET @cnt = @cnt + 1
---	END
+
 
 	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
-	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@member_id));
+	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@MemberId));
 
 	-- Run the next dvd function which finds the next dvd in the members queue
-	SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(@member_id));
+	SELECT @Next_dvd_id = (SELECT dbo.GetNextDVD(@MemberId));
 	
 	UPDATE Rental
-	SET MemberId = @member_id, DVDCopyId = @Next_dvd_id, 
+	SET MemberId = @MemberId, DVDCopyId = @Next_dvd_id, 
 	RentalRequestDate = (SELECT DateAddedInQueue 
 						 FROM RentalQueue rq
 						 JOIN DVD d ON d.DVDId = rq.DVDId
-						 WHERE MemberId = @member_id AND rq.DVDId = @Next_dvd_id),
+						 WHERE MemberId = @MemberId AND rq.DVDId = @Next_dvd_id),
 	RentalShippedDate = GETDATE()
-	WHERE MemberId = @member_id AND DVDCopyId = @Next_dvd_id
+	WHERE MemberId = @MemberId AND DVDCopyId = @Next_dvd_id
 
-	EXEC DELETE_RENTAL_QUEUE @member_id = @member_id, @dvd_id = @Next_dvd_id
+	EXEC DELETE_RENTAL_QUEUE @member_id = @MemberId, @dvd_id = @Next_dvd_id
 
 END;
 
