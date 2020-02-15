@@ -245,7 +245,7 @@ VALUES (NEXT VALUE FOR dbo.RentalId_Seq, 1, 1, GETDATE());
 -- Takes memberId and the dvd copy id as inputs
 -- If the DVD_Lost bit is 0 then update to put the DVDOnHand to 1 and OnRent to 0
 -- If the DVD_Lost bit is 1 then update to put the DVDLost to 1,  OnRent to 0 and balance -25
-CREATE OR ALTER PROCEDURE PROC_DVD_Return
+CREATE OR ALTER PROCEDURE [dbo].[PROC_DVD_Return]
 	@MemberId NUMERIC(12,0),
 	@DVDCopyId NUMERIC(16,0),
 	@DVD_Lost BIT = 0
@@ -257,7 +257,7 @@ BEGIN
 			-- Filters on memberId, DVDCopyID where the movie has been shipped but not returned
 			UPDATE Rental
 			SET RentalReturnedDate = GETDATE()
-			WHERE MemberId = @memberId AND DVDCopyId = @DVDCopyId 
+			WHERE MemberId = @MemberId AND DVDCopyId = @DVDCopyId 
 			  AND RentalShippedDate IS NOT NULL AND RentalReturnedDate IS NULL
 
 			-- Update DVD_Copy to show the DVD has been returned
@@ -270,13 +270,13 @@ BEGIN
 			-- updates member's balance with current balance minus 25 for a lost dvd
 			UPDATE Member
 			SET Balance = Balance - 25
-			WHERE MemberId = @memberId
+			WHERE MemberId = @MemberId
 
 			-- Updates rental table to show the member returned a dvd
 			-- Filters on memberId, DVDCopyID where the movie has been shipped but not returned
 			UPDATE Rental
 			SET RentalReturnedDate = GETDATE()
-			WHERE MemberId = @memberId AND DVDCopyId = @DVDCopyId 
+			WHERE MemberId = @MemberId AND DVDCopyId = @DVDCopyId 
 			  AND RentalShippedDate IS NOT NULL AND RentalReturnedDate IS NULL
 
 			-- Update DVD_Copy to show the DVD was lost
@@ -294,6 +294,11 @@ CREATE OR ALTER PROCEDURE PROC_RENT_DVD
 AS
 	DECLARE @Next_dvd_copy_id NUMERIC(16,0),
 			@Next_dvd_id NUMERIC(16,0)
+			-- Test variables
+	--		,@MemberId NUMERIC(12,0)
+
+	--SELECT @MemberId = 2
+
 	BEGIN
 		-- Run the next dvd function which finds the next dvd in the members queue
 		SELECT @Next_dvd_copy_id = (SELECT dbo.GetNextDVD(@MemberId));
@@ -303,19 +308,12 @@ AS
 				SELECT @Next_dvd_id = (SELECT DVDId
 									   FROM DVD_Copy 
 									   WHERE DVDCopyId = @Next_dvd_copy_id)
-				
+
 				-- Insert the info into the rental table
-				-- date values arent working on this insert for some reason, tried using getdate or a fixed date
-				-- neither worked. Going to just use an update instead of continuing to troubleshoot
 				INSERT INTO Rental(RentalId, MemberId, DVDCopyId)
 				VALUES (NEXT VALUE FOR dbo.RentalId_Seq, @MemberId, @Next_dvd_copy_id);
-				
-				-- updating RentalShippedDate since insert isnt working for some reason
-				--UPDATE Rental
-				--SET RentalShippedDate = GETDATE()
-				--WHERE MemberId = @MemberId AND DVDCopyId = @Next_dvd_copy_id
 
-				-- updating rental with the original date added from the queue table
+				-- updating rental with the original date added from the queue table and current date
 				UPDATE Rental
 				SET MemberId = @MemberId, DVDCopyId = @Next_dvd_copy_id, 
 				RentalRequestDate = (SELECT DateAddedInQueue 
@@ -360,21 +358,21 @@ AS
 BEGIN
 	DECLARE @additional_DVD_count SMALLINT,
 			@cnt SMALLINT = 1
-			--@Next_dvd_copy_id NUMERIC(16,0),
-			--@Next_dvd_id NUMERIC(16,0),
-			--@parameterDefinition NVARCHAR(200),
-			--@statement VARCHAR(200)
 			
 			-- Test variables
---			,@MemberId NUMERIC(12,0),
---			@DVDCopyId_1_returned NUMERIC(16,0),
---			@DVDCopyId_2_returned NUMERIC(16,0) = NULL,
---			@DVDCopyId_3_returned NUMERIC(16,0) = NULL,
---			@Lost_DVD_1 BIT,
---			@Lost_DVD_2 BIT = NULL,
---			@Lost_DVD_3 BIT = NULL
+	--		,@Next_dvd_copy_id NUMERIC(16,0),
+	--		@Next_dvd_id NUMERIC(16,0),
+	--		@parameterDefinition NVARCHAR(200),
+	--		@statement VARCHAR(200),
+	--		@MemberId NUMERIC(12,0),
+	--		@DVDCopyId_1_returned NUMERIC(16,0),
+	--		@DVDCopyId_2_returned NUMERIC(16,0) = NULL,
+	--		@DVDCopyId_3_returned NUMERIC(16,0) = NULL,
+	--		@Lost_DVD_1 BIT,
+	--		@Lost_DVD_2 BIT = NULL,
+	--		@Lost_DVD_3 BIT = NULL
 
-	--SET @MemberId = 1
+	--SET @MemberId = 2
 
 	--SET @DVDCopyId_1_returned = 31
 	--SET @DVDCopyId_2_returned = 4
@@ -382,7 +380,7 @@ BEGIN
 
 	--SET @Lost_DVD_1 = 0
 	--SET @Lost_DVD_2 = 0
-	--SET @Lost_DVD_3 = 1
+	--SET @Lost_DVD_3 = 0
 
 	-- I tried to set this up as a while loop using dynamic variable names dependent on
 	-- how many dvd's were returned but couldn't get it to work.
@@ -414,17 +412,24 @@ BEGIN
 
 	-- Run the dvd count function which returns how many DVD's the memeber is elegible to rent
 	SELECT @additional_DVD_count = (SELECT dbo.CountDVDLimits(@MemberId));
-
+	PRINT @additional_DVD_count
 	-- Runs a loop executing the rent dvd stored proc once for each additional DVD
 	-- the member is able to rent
-	WHILE @cnt <= @additional_DVD_count
+	IF @additional_DVD_count > 0
 		BEGIN
-			EXEC PROC_RENT_DVD @MemberId
-			SET @cnt = @cnt + 1
+			WHILE @cnt <= @additional_DVD_count
+				BEGIN
+					EXEC PROC_RENT_DVD @MemberId
+					SET @cnt = @cnt + 1
+				END
 		END
+	ELSE
+		BEGIN
+			PRINT 'You''re current ineligible for additional DVD''s at this time'
+		END;
 END
 
--- TESTING SETUP
+-- TESTING SETUP - MEMBER 1
 UPDATE Rental
 SET RentalReturnedDate = NULL
 WHERE RentalId in (2,3,4)
@@ -483,14 +488,21 @@ EXEC PROC_DVD_Processing 1, 4, 31, 12, 0, 0, 0
 EXEC PROC_DVD_Processing 1, 4, 31, NULL, 0, 1, NULL
 
 ----------------------------------------------------------------
--- Member 2 testing
+-- TESTING SETUP - MEMBER 2
+
+--INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate, RentalReturnedDate)
+--VALUES (1, 2, 1, '20010101',  GETDATE(), GETDATE()),
+--	   (2, 2, 27, '20010101',  GETDATE(), GETDATE()),
+--	   (3, 2, 31, '20010101',  GETDATE(), NULL),
+--	   (4, 2, 65, '20010101',  GETDATE(), NULL)
+
 UPDATE Rental
 SET RentalReturnedDate = NULL
 WHERE RentalId in (6,7,8)
 
 UPDATE DVD_Copy
 SET DVDOnHand = 0, DVDOnRent = 1, DVDLost = 0
-WHERE DVDCopyId IN (27, 31, 65)
+WHERE DVDCopyId IN (31, 65)
 
 UPDATE Member
 SET Balance = 0
@@ -506,12 +518,6 @@ VALUES (2, 1, '20200113', 1),
 	   (2, 2, '20020101', 2),
 	   (2, 3, '20030211', 3)
 
---INSERT INTO Rental(RentalId, MemberId, DVDCopyId, RentalRequestDate, RentalShippedDate, RentalReturnedDate)
---VALUES (5, 2, 1, '20010101',  GETDATE(), GETDATE()),
---	   (6, 2, 27, '20010101',  GETDATE(), NULL),
---	   (7, 2, 31, '20010101',  GETDATE(), NULL),
---	   (8, 2, 65, '20010101',  GETDATE(), NULL)
-
 -- VIEW DATA
 SELECT 'Member Table', MemberId,Balance
 FROM Member WHERE MemberId = 2
@@ -522,6 +528,8 @@ WHERE MemberId = 2 ORDER BY QueuePosition
 SELECT 'DVD_Copy Table', * FROM DVD_Copy
 WHERE DVDCopyId IN (1, 12, 27, 31, 65)
 
+--select * from Membership
+
 -- MemberId, DVDCopyID1, DVDCopyID2, DVDCopyID3, DVDLostBit1, DVDLostBit2, DVDLostBit3
--- Member 2 returning dvd 27, 31 and 65, none lost
-EXEC PROC_DVD_Processing 2, 27, 31, 65, 0, 0, 0
+-- Member 2 returning dvd 31, none lost
+EXEC PROC_DVD_Processing 2, 31, NULL, NULL, 0, NULL, NULL
