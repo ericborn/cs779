@@ -2,7 +2,7 @@
 Original script create by Mubin M. Shaikh
 from https://www.codeproject.com/Articles/647950/Create-and-Populate-Date-Dimension-for-Data-Wareho
 
-Modified slightly to fix syntax errors
+Modified slightly to fix syntax errors and removed all references to UK time
 */
 
 BEGIN TRY
@@ -18,13 +18,11 @@ END CATCH
 CREATE TABLE	[dbo].[time]
 	(	[DateKey] INT primary key, 
 		[Date] DATETIME,
-		[FullDateUK] CHAR(10), -- Date in dd-MM-yyyy format
 		[FullDateUSA] CHAR(10),-- Date in MM-dd-yyyy format
 		[DayOfMonth] VARCHAR(2), -- Field will hold day number of Month
 		[DaySuffix] VARCHAR(4), -- Apply suffix as 1st, 2nd ,3rd etc
 		[DayName] VARCHAR(9), -- Contains name of the day, Sunday, Monday 
 		[DayOfWeekUSA] CHAR(1),-- First Day Sunday=1 and Saturday=7
-		[DayOfWeekUK] CHAR(1),-- First Day Monday=1 and Sunday=7
 		[DayOfWeekInMonth] VARCHAR(2), --1st Monday or 2nd Monday in Month
 		[DayOfWeekInYear] VARCHAR(2),
 		[DayOfQuarter] VARCHAR(3),
@@ -50,8 +48,6 @@ CREATE TABLE	[dbo].[time]
 		[IsHolidayUSA] BIT,-- Flag 1=National Holiday, 0-No National Holiday
 		[IsWeekday] BIT,-- 0=Week End ,1=Week Day
 		[HolidayUSA] VARCHAR(50),--Name of Holiday in US
-		[IsHolidayUK] BIT Null,-- Flag 1=National Holiday, 0-No National Holiday
-		[HolidayUK] VARCHAR(50) Null --Name of Holiday in UK
 	)
 GO
 
@@ -154,7 +150,7 @@ BEGIN
 		
 		CONVERT (char(8),@CurrentDate,112) as DateKey,
 		@CurrentDate AS Date,
-		CONVERT (char(10),@CurrentDate,103) as FullDateUK,
+		--CONVERT (char(10),@CurrentDate,103) as FullDateUK,
 		CONVERT (char(10),@CurrentDate,101) as FullDateUSA,
 		DATEPART(DD, @CurrentDate) AS DayOfMonth,
 		--Apply Suffix values like 1st, 2nd 3rd etc..
@@ -172,18 +168,6 @@ BEGIN
 		
 		DATENAME(DW, @CurrentDate) AS DayName,
 		DATEPART(DW, @CurrentDate) AS DayOfWeekUSA,
-
-		-- check for day of week as Per US and change it as per UK format 
-		CASE DATEPART(DW, @CurrentDate)
-			WHEN 1 THEN 7
-			WHEN 2 THEN 1
-			WHEN 3 THEN 2
-			WHEN 4 THEN 3
-			WHEN 5 THEN 4
-			WHEN 6 THEN 5
-			WHEN 7 THEN 6
-			END 
-			AS DayOfWeekUK,
 		
 		@DayOfWeekInMonth AS DayOfWeekInMonth,
 		@DayOfWeekInYear AS DayOfWeekInYear,
@@ -236,7 +220,7 @@ BEGIN
 			WHEN 6 THEN 1
 			WHEN 7 THEN 0
 			END AS IsWeekday,
-		NULL AS HolidayUSA, Null, Null
+		NULL AS HolidayUSA
 
 	SET @CurrentDate = DATEADD(DD, 1, @CurrentDate)
 END
@@ -244,58 +228,6 @@ END
 /********************************************************************************************/
  
 --Step 3.
---Update Values of Holiday as per UK Government Declaration for National Holiday.
-
-/*Update HOLIDAY fields of UK as per Govt. Declaration of National Holiday*/
-	
--- Good Friday  April 18 
-	UPDATE [dbo].[time]
-		SET HolidayUK = 'Good Friday'
-	WHERE [Month] = 4 AND [DayOfMonth]  = 18
-
--- Easter Monday  April 21 
-	UPDATE [dbo].[time]
-		SET HolidayUK = 'Easter Monday'
-	WHERE [Month] = 4 AND [DayOfMonth]  = 21
-
--- Early May Bank Holiday   May 5 
-   UPDATE [dbo].[time]
-		SET HolidayUK = 'Early May Bank Holiday'
-	WHERE [Month] = 5 AND [DayOfMonth]  = 5
-
--- Spring Bank Holiday  May 26 
-	UPDATE [dbo].[time]
-		SET HolidayUK = 'Spring Bank Holiday'
-	WHERE [Month] = 5 AND [DayOfMonth]  = 26
-
--- Summer Bank Holiday  August 25 
-    UPDATE [dbo].[time]
-		SET HolidayUK = 'Summer Bank Holiday'
-	WHERE [Month] = 8 AND [DayOfMonth]  = 25
-
--- Boxing Day  December 26  	
-    UPDATE [dbo].[time]
-		SET HolidayUK = 'Boxing Day'
-	WHERE [Month] = 12 AND [DayOfMonth]  = 26	
-
---CHRISTMAS
-	UPDATE [dbo].[time]
-		SET HolidayUK = 'Christmas Day'
-	WHERE [Month] = 12 AND [DayOfMonth]  = 25
-
---New Years Day
-	UPDATE [dbo].[time]
-		SET HolidayUK  = 'New Year''s Day'
-	WHERE [Month] = 1 AND [DayOfMonth] = 1
-
---Update flag for UK Holidays 1= Holiday, 0=No Holiday
-	
-	UPDATE [dbo].[time]
-		SET IsHolidayUK  = CASE WHEN HolidayUK   IS NULL
-		THEN 0 WHEN HolidayUK   IS NOT NULL THEN 1 END
-		
- 
---Step 4.
 --Update Values of Holiday as per USA Govt. Declaration for National Holiday.
 
 /*Update HOLIDAY Field of USA In dimension*/
