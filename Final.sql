@@ -1,20 +1,44 @@
--- Rename tables
-EXEC sp_rename 'olist_customers_dataset', 'customers'
-EXEC sp_rename 'olist_geolocation_dataset', 'geolocation'
-EXEC sp_rename 'olist_order_items_dataset', 'order_items'
-EXEC sp_rename 'olist_order_payments_dataset', 'order_payments'
-EXEC sp_rename 'olist_order_reviews_dataset', 'order_reviews'
-EXEC sp_rename 'olist_orders_dataset', 'orders'
-EXEC sp_rename 'olist_products_dataset', 'products'
-EXEC sp_rename 'olist_sellers_dataset', 'sellers'
-EXEC sp_rename 'product_category_name_translation', 'category'
+/*
+Eric Born
+CS 779
+Fall 2020
+Final project - Oline data warehouse
+*/
 
--- Remove quotes from column names
-EXEC sp_rename 'customers.["customer_id"]', 'customer_id'
-EXEC sp_rename 'customers.["customer_unique_id"]', 'customer_unique_id'
-EXEC sp_rename 'customers.["customer_zip_code_prefix"]', 'customer_zip_code_prefix'
-EXEC sp_rename 'customers.["customer_city"]', 'customer_city'
-EXEC sp_rename 'customers.["customer_state"]', 'customer_state'
+-- Unneeded, these errors were introduced from importing with the import data feature instead of import flat file
+---- Rename tables
+--EXEC sp_rename 'olist_customers_dataset', 'customers'
+--EXEC sp_rename 'olist_geolocation_dataset', 'geolocation'
+--EXEC sp_rename 'olist_order_items_dataset', 'order_items'
+--EXEC sp_rename 'olist_order_payments_dataset', 'order_payments'
+--EXEC sp_rename 'olist_order_reviews_dataset', 'order_reviews'
+--EXEC sp_rename 'olist_orders_dataset', 'orders'
+--EXEC sp_rename 'olist_products_dataset', 'products'
+--EXEC sp_rename 'olist_sellers_dataset', 'sellers'
+--EXEC sp_rename 'product_category_name_translation', 'category'
+
+---- Remove quotes from column names
+--EXEC sp_rename 'customers.["customer_id"]', 'customer_id'
+--EXEC sp_rename 'customers.["customer_unique_id"]', 'customer_unique_id'
+--EXEC sp_rename 'customers.["customer_zip_code_prefix"]', 'customer_zip_code_prefix'
+--EXEC sp_rename 'customers.["customer_city"]', 'customer_city'
+--EXEC sp_rename 'customers.["customer_state"]', 'customer_state'
+
+---- Code section to clean any issues found in the data
+---- Find if all zips are the same length
+--SELECT DISTINCT LEN(customer_zip_code_prefix)
+--FROM customers
+
+---- Selects 5 numbers between the two quotes
+--SELECT RIGHT(LEFT(customer_zip_code_prefix, 6),5)
+--FROM customers
+
+---- Removes quotes from start and end of zipcode 
+---- in the customers table customer_zip_code_prefix column
+--UPDATE customers
+--SET customer_zip_code_prefix = (SELECT RIGHT(LEFT(customer_zip_code_prefix, 6),5)
+--								FROM customers c
+--								WHERE customers.customer_id = c.customer_id)
 
 -- script to output database schema
 -- Provided by lucidchart.com with their import data feature
@@ -29,21 +53,26 @@ LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r ON k.CONSTRAINT_CATALOG=r
 AND k.CONSTRAINT_NAME=r.CONSTRAINT_NAME)ON c.TABLE_CATALOG=k.TABLE_CATALOG AND c.TABLE_SCHEMA=k.TABLE_SCHEMA AND c.TABLE_NAME=k.TABLE_NAME AND c.COLUMN_NAME=k.COLUMN_NAME 
 WHERE t.TABLE_TYPE='BASE TABLE';
 
--- Code section to clean any issues found in the data
--- Find if all zips are the same length
-SELECT DISTINCT LEN(customer_zip_code_prefix)
-FROM customers
+----------------------------
+-- Purchases from Sept 4 2016 to Oct 17 2018
+SELECT MIN(Order_purchase_timestamp) AS 'First', 
+MAX(Order_purchase_timestamp) AS 'Last'
+FROM orders o
 
--- Selects 5 numbers between the two quotes
-SELECT RIGHT(LEFT(customer_zip_code_prefix, 6),5)
-FROM customers
+-- Gathers the data for the orders table
+-- does a convert on the time.datekey from INT to DATE
+-- also converts orders order_purchase_timestamp from DATETIME to DATE
+SELECT TOP 100 t.DateKey, c.product_category_name_english, oi.seller_id, s.seller_city, 
+s.seller_state, SUM(oi.price) AS 'Total_Value', COUNT(oi.product_id) AS 'Units_Sold'
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id
+JOIN products p ON p.product_id = oi.product_id
+JOIN category c ON c.product_category_name = p.product_category_name
+JOIN sellers s ON s.seller_id = oi.seller_id
+JOIN time t ON CONVERT(DATE,CONVERT(VARCHAR(8),t.DateKey,112)) = CONVERT(DATE,o.order_purchase_timestamp,112)
+GROUP BY t.DateKey, o.order_purchase_timestamp, c.product_category_name_english, oi.seller_id, s.seller_city, s.seller_state
+ 
 
--- Removes quotes from start and end of zipcode 
--- in the customers table customer_zip_code_prefix column
-UPDATE customers
-SET customer_zip_code_prefix = (SELECT RIGHT(LEFT(customer_zip_code_prefix, 6),5)
-								FROM customers c
-								WHERE customers.customer_id = c.customer_id)
 
 -- Find misspelled Sãu Paulo in seller_city column
 SELECT distinct seller_city
@@ -56,27 +85,6 @@ SET seller_city = 'Sãu Paulo'
 WHERE seller_city LIKE 'sao pau%' OR seller_city LIKE 'sao palu%'
 
 
-----------------------------
--- Purchases from Sept 4 2016 to Oct 17 2018
-SELECT MIN(Order_purchase_timestamp) AS 'First', 
-MAX(Order_purchase_timestamp) AS 'Last'
-FROM orders o
-
--- Gathers the data for the orders table
-SELECT TOP 100 o.order_purchase_timestamp, c.product_category_name_english, oi.seller_id, s.seller_city, 
-s.seller_state, SUM(oi.price) AS 'Total_Value', COUNT(oi.product_id) AS 'Units_Sold'
-FROM orders o
-JOIN order_items oi ON oi.order_id = o.order_id
-JOIN products p ON p.product_id = oi.product_id
-JOIN category c ON c.product_category_name = p.product_category_name
-JOIN sellers s ON s.seller_id = oi.seller_id
-GROUP BY o.order_purchase_timestamp, c.product_category_name_english, oi.seller_id, s.seller_city, 
-s.seller_state
- 
-
-
-
-SELECT * FROM customers
 
 SELECT top 100 *
 FROM sellers s
