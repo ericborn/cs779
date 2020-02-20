@@ -1,10 +1,12 @@
 /*
 This script will build out a time_period table which contains various measurements of time, day, day of month, etc.
 
+Modified slightly to fix syntax errors, removed all references to UK time and only retained the following columns:
+DateKey, Date, DayOfMonth, DayName, DayOfWeek, DayOfWeekInMonth, WeekOfYear,
+Month, MonthName, Quarter, Year, IsHoliday, IsWeekday, Holiday
+
 Original script create by Mubin M. Shaikh
 from https://www.codeproject.com/Articles/647950/Create-and-Populate-Date-Dimension-for-Data-Wareho
-
-Modified slightly to fix syntax errors and removed all references to UK time
 */
 
 -- set the query to use the original database
