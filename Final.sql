@@ -33,11 +33,27 @@ SET customer_zip_code_prefix = (SELECT RIGHT(LEFT(customer_zip_code_prefix, 6),5
  
 SELECT * FROM customers
 
+-- find misspelled Sãu Paulo in seller_city column
+SELECT distinct seller_city
+FROM sellers s
+WHERE seller_city LIKE 'sao pau%' OR seller_city LIKE 'sao palu%'
+
+SELECT top 100 *
+FROM sellers s
+JOIN geolocation gl ON gl.geolocation_zip_code_prefix = s.seller_zip_code_prefix
+
 SELECT * FROM geolocation
 
 SELECT * --p. 
 FROM orders o
 JOIN order_items oi ON oi.order_id = o.order_id
 JOIN products p ON p.product_id = oi.product_id
+JOIN category c ON c.product_category_name = p.product_category_name
+
+SELECT count(*) --TOP 100 *
+FROM order_items --orders
+
+SELECT TOP 100 *--count(*)
+FROM products p
 JOIN category c ON c.product_category_name = p.product_category_name
 
