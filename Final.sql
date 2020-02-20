@@ -54,21 +54,21 @@ AND k.CONSTRAINT_NAME=r.CONSTRAINT_NAME)ON c.TABLE_CATALOG=k.TABLE_CATALOG AND c
 WHERE t.TABLE_TYPE='BASE TABLE';
 
 ----------------------------
--- Purchases from Sept 4 2016 to Oct 17 2018
-SELECT MIN(Order_purchase_timestamp) AS 'First', 
-MAX(Order_purchase_timestamp) AS 'Last'
-FROM orders o
+
+USE Olist_DW
+
+
 
 -- Gathers the data for the orders table
 -- does a convert on the time.datekey from INT to DATE
 -- also converts orders order_purchase_timestamp from DATETIME to DATE
 SELECT TOP 100 t.DateKey, c.product_category_name_english, oi.seller_id, s.seller_city, 
 s.seller_state, SUM(oi.price) AS 'Total_Value', COUNT(oi.product_id) AS 'Units_Sold'
-FROM orders o
-JOIN order_items oi ON oi.order_id = o.order_id
-JOIN products p ON p.product_id = oi.product_id
-JOIN category c ON c.product_category_name = p.product_category_name
-JOIN sellers s ON s.seller_id = oi.seller_id
+FROM Olist.dbo.orders o
+JOIN Olist.dbo.order_items oi ON oi.order_id = o.order_id
+JOIN Olist.dbo.products p ON p.product_id = oi.product_id
+JOIN Olist.dbo.category c ON c.product_category_name = p.product_category_name
+JOIN Olist.dbo.sellers s ON s.seller_id = oi.seller_id
 JOIN time t ON CONVERT(DATE,CONVERT(VARCHAR(8),t.DateKey,112)) = CONVERT(DATE,o.order_purchase_timestamp,112)
 GROUP BY t.DateKey, o.order_purchase_timestamp, c.product_category_name_english, oi.seller_id, s.seller_city, s.seller_state
  
@@ -84,7 +84,7 @@ UPDATE sellers
 SET seller_city = 'Sãu Paulo'
 WHERE seller_city LIKE 'sao pau%' OR seller_city LIKE 'sao palu%'
 
-
+SELECT top 100 * from time
 
 SELECT top 100 *
 FROM sellers s
