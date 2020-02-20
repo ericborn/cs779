@@ -1,12 +1,26 @@
 /*
+This script will build out a time_period table which contains various measurements of time, day, day of month, etc.
+
 Original script create by Mubin M. Shaikh
 from https://www.codeproject.com/Articles/647950/Create-and-Populate-Date-Dimension-for-Data-Wareho
 
 Modified slightly to fix syntax errors and removed all references to UK time
 */
 
+-- set the query to use the original database
+USE Olist
+
+-- Find what the minimum and maximum purchase date was
+-- Dataset contains purchases from Sept 4 2016 to Oct 17 2018
+SELECT MIN(Order_purchase_timestamp) AS 'First', 
+MAX(Order_purchase_timestamp) AS 'Last'
+FROM orders o
+
+-- set the query to use the data warehouse database
+USE Olist_DW
+
 BEGIN TRY
-	DROP TABLE [dbo].[time]
+	DROP TABLE [dbo].[time_period]
 END TRY
 
 BEGIN CATCH
@@ -15,39 +29,21 @@ END CATCH
 
 /**********************************************************************************/
 
-CREATE TABLE	[dbo].[time]
+CREATE TABLE	[dbo].[time_period]
 	(	[DateKey] INT primary key, 
-		[Date] DATETIME,
-		[FullDateUSA] CHAR(10),-- Date in MM-dd-yyyy format
+		[Date] DATE,
 		[DayOfMonth] VARCHAR(2), -- Field will hold day number of Month
-		[DaySuffix] VARCHAR(4), -- Apply suffix as 1st, 2nd ,3rd etc
 		[DayName] VARCHAR(9), -- Contains name of the day, Sunday, Monday 
-		[DayOfWeekUSA] CHAR(1),-- First Day Sunday=1 and Saturday=7
+		[DayOfWeek] CHAR(1),-- First Day Sunday=1 and Saturday=7
 		[DayOfWeekInMonth] VARCHAR(2), --1st Monday or 2nd Monday in Month
-		[DayOfWeekInYear] VARCHAR(2),
-		[DayOfQuarter] VARCHAR(3),
-		[DayOfYear] VARCHAR(3),
-		[WeekOfMonth] VARCHAR(1),-- Week Number of Month 
-		[WeekOfQuarter] VARCHAR(2), --Week Number of the Quarter
 		[WeekOfYear] VARCHAR(2),--Week Number of the Year
 		[Month] VARCHAR(2), --Number of the Month 1 to 12
 		[MonthName] VARCHAR(9),--January, February etc
-		[MonthOfQuarter] VARCHAR(2),-- Month Number belongs to Quarter
 		[Quarter] CHAR(1),
-		[QuarterName] VARCHAR(9),--First,Second..
 		[Year] CHAR(4),-- Year value of Date stored in Row
-		[YearName] CHAR(7), --CY 2012,CY 2013
-		[MonthYear] CHAR(10), --Jan-2013,Feb-2013
-		[MMYYYY] CHAR(6),
-		[FirstDayOfMonth] DATE,
-		[LastDayOfMonth] DATE,
-		[FirstDayOfQuarter] DATE,
-		[LastDayOfQuarter] DATE,
-		[FirstDayOfYear] DATE,
-		[LastDayOfYear] DATE,
-		[IsHolidayUSA] BIT,-- Flag 1=National Holiday, 0-No National Holiday
+		[IsHoliday] BIT,-- Flag 1=National Holiday, 0-No National Holiday
 		[IsWeekday] BIT,-- 0=Week End ,1=Week Day
-		[HolidayUSA] VARCHAR(50),--Name of Holiday in US
+		[Holiday] VARCHAR(50),--Name of Holiday in US
 	)
 GO
 
@@ -145,72 +141,21 @@ BEGIN
 
 /* Populate Your Dimension Table with values*/
 	
-	INSERT INTO [dbo].[time]
+	INSERT INTO [dbo].[time_period]
 	SELECT
 		
 		CONVERT (char(8),@CurrentDate,112) as DateKey,
 		@CurrentDate AS Date,
-		--CONVERT (char(10),@CurrentDate,103) as FullDateUK,
-		CONVERT (char(10),@CurrentDate,101) as FullDateUSA,
 		DATEPART(DD, @CurrentDate) AS DayOfMonth,
-		--Apply Suffix values like 1st, 2nd 3rd etc..
-		CASE 
-			WHEN DATEPART(DD,@CurrentDate) IN (11,12,13)
-			THEN CAST(DATEPART(DD,@CurrentDate) AS VARCHAR) + 'th'
-			WHEN RIGHT(DATEPART(DD,@CurrentDate),1) = 1
-			THEN CAST(DATEPART(DD,@CurrentDate) AS VARCHAR) + 'st'
-			WHEN RIGHT(DATEPART(DD,@CurrentDate),1) = 2
-			THEN CAST(DATEPART(DD,@CurrentDate) AS VARCHAR) + 'nd'
-			WHEN RIGHT(DATEPART(DD,@CurrentDate),1) = 3
-			THEN CAST(DATEPART(DD,@CurrentDate) AS VARCHAR) + 'rd'
-			ELSE CAST(DATEPART(DD,@CurrentDate) AS VARCHAR) + 'th' 
-			END AS DaySuffix,
-		
 		DATENAME(DW, @CurrentDate) AS DayName,
-		DATEPART(DW, @CurrentDate) AS DayOfWeekUSA,
-		
+		DATEPART(DW, @CurrentDate) AS DayOfWeek,
 		@DayOfWeekInMonth AS DayOfWeekInMonth,
-		@DayOfWeekInYear AS DayOfWeekInYear,
-		@DayOfQuarter AS DayOfQuarter,
-		DATEPART(DY, @CurrentDate) AS DayOfYear,
-		DATEPART(WW, @CurrentDate) + 1 - DATEPART(WW, CONVERT(VARCHAR,
-		DATEPART(MM, @CurrentDate)) + '/1/' + CONVERT(VARCHAR,
-		DATEPART(YY, @CurrentDate))) AS WeekOfMonth,
-		(DATEDIFF(DD, DATEADD(QQ, DATEDIFF(QQ, 0, @CurrentDate), 0),
-		@CurrentDate) / 7) + 1 AS WeekOfQuarter,
 		DATEPART(WW, @CurrentDate) AS WeekOfYear,
 		DATEPART(MM, @CurrentDate) AS Month,
 		DATENAME(MM, @CurrentDate) AS MonthName,
-		CASE
-			WHEN DATEPART(MM, @CurrentDate) IN (1, 4, 7, 10) THEN 1
-			WHEN DATEPART(MM, @CurrentDate) IN (2, 5, 8, 11) THEN 2
-			WHEN DATEPART(MM, @CurrentDate) IN (3, 6, 9, 12) THEN 3
-			END AS MonthOfQuarter,
 		DATEPART(QQ, @CurrentDate) AS Quarter,
-		CASE DATEPART(QQ, @CurrentDate)
-			WHEN 1 THEN 'First'
-			WHEN 2 THEN 'Second'
-			WHEN 3 THEN 'Third'
-			WHEN 4 THEN 'Fourth'
-			END AS QuarterName,
 		DATEPART(YEAR, @CurrentDate) AS Year,
-		'CY ' + CONVERT(VARCHAR, DATEPART(YEAR, @CurrentDate)) AS YearName,
-		LEFT(DATENAME(MM, @CurrentDate), 3) + '-' + CONVERT(VARCHAR,
-		DATEPART(YY, @CurrentDate)) AS MonthYear,
-		RIGHT('0' + CONVERT(VARCHAR, DATEPART(MM, @CurrentDate)),2) +
-		CONVERT(VARCHAR, DATEPART(YY, @CurrentDate)) AS MMYYYY,
-		CONVERT(DATETIME, CONVERT(DATE, DATEADD(DD, - (DATEPART(DD,
-		@CurrentDate) - 1), @CurrentDate))) AS FirstDayOfMonth,
-		CONVERT(DATETIME, CONVERT(DATE, DATEADD(DD, - (DATEPART(DD,
-		(DATEADD(MM, 1, @CurrentDate)))), DATEADD(MM, 1,
-		@CurrentDate)))) AS LastDayOfMonth,
-		DATEADD(QQ, DATEDIFF(QQ, 0, @CurrentDate), 0) AS FirstDayOfQuarter,
-		DATEADD(QQ, DATEDIFF(QQ, -1, @CurrentDate), -1) AS LastDayOfQuarter,
-		CONVERT(DATETIME, '01/01/' + CONVERT(VARCHAR, DATEPART(YY,
-		@CurrentDate))) AS FirstDayOfYear,
-		CONVERT(DATETIME, '12/31/' + CONVERT(VARCHAR, DATEPART(YY,
-		@CurrentDate))) AS LastDayOfYear,
-		NULL AS IsHolidayUSA,
+		NULL AS IsHoliday,
 		CASE DATEPART(DW, @CurrentDate)
 			WHEN 1 THEN 0
 			WHEN 2 THEN 1
@@ -220,7 +165,7 @@ BEGIN
 			WHEN 6 THEN 1
 			WHEN 7 THEN 0
 			END AS IsWeekday,
-		NULL AS HolidayUSA
+		NULL AS Holiday
 
 	SET @CurrentDate = DATEADD(DD, 1, @CurrentDate)
 END
@@ -228,118 +173,118 @@ END
 /********************************************************************************************/
  
 --Step 3.
---Update Values of Holiday as per USA Govt. Declaration for National Holiday.
+--Update Values of Holiday as per  Govt. Declaration for National Holiday.
 
-/*Update HOLIDAY Field of USA In dimension*/
+/*Update HOLIDAY Field of  In dimension*/
 	
  	/*THANKSGIVING - Fourth THURSDAY in November*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Thanksgiving Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Thanksgiving Day'
 	WHERE
 		[Month] = 11 
-		AND [DayOfWeekUSA] = 'Thursday' 
+		AND [DayOfWeek] = 'Thursday' 
 		AND DayOfWeekInMonth = 4
 
 	/*CHRISTMAS*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Christmas Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Christmas Day'
 		
 	WHERE [Month] = 12 AND [DayOfMonth]  = 25
 
 	/*4th of July*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Independance Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Independance Day'
 	WHERE [Month] = 7 AND [DayOfMonth] = 4
 
 	/*New Years Day*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'New Year''s Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'New Year''s Day'
 	WHERE [Month] = 1 AND [DayOfMonth] = 1
 
 	/*Memorial Day - Last Monday in May*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Memorial Day'
-	FROM [dbo].[time]
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Memorial Day'
+	FROM [dbo].[time_period]
 	WHERE DateKey IN 
 		(
 		SELECT
 			MAX(DateKey)
-		FROM [dbo].[time]
+		FROM [dbo].[time_period]
 		WHERE
 			[MonthName] = 'May'
-			AND [DayOfWeekUSA]  = 'Monday'
+			AND [DayOfWeek]  = 'Monday'
 		GROUP BY
 			[Year],
 			[Month]
 		)
 
 	/*Labor Day - First Monday in September*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Labor Day'
-	FROM [dbo].[time]
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Labor Day'
+	FROM [dbo].[time_period]
 	WHERE DateKey IN 
 		(
 		SELECT
 			MIN(DateKey)
-		FROM [dbo].[time]
+		FROM [dbo].[time_period]
 		WHERE
 			[MonthName] = 'September'
-			AND [DayOfWeekUSA] = 'Monday'
+			AND [DayOfWeek] = 'Monday'
 		GROUP BY
 			[Year],
 			[Month]
 		)
 
 	/*Valentine's Day*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Valentine''s Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Valentine''s Day'
 	WHERE
 		[Month] = 2 
 		AND [DayOfMonth] = 14
 
 	/*Saint Patrick's Day*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Saint Patrick''s Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Saint Patrick''s Day'
 	WHERE
 		[Month] = 3
 		AND [DayOfMonth] = 17
 
 	/*Martin Luthor King Day - Third Monday in January starting in 1983*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Martin Luthor King Jr Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Martin Luthor King Jr Day'
 	WHERE
 		[Month] = 1
-		AND [DayOfWeekUSA]  = 'Monday'
+		AND [DayOfWeek]  = 'Monday'
 		AND [Year] >= 1983
 		AND DayOfWeekInMonth = 3
 
 	/*President's Day - Third Monday in February*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'President''s Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'President''s Day'
 	WHERE
 		[Month] = 2
-		AND [DayOfWeekUSA] = 'Monday'
+		AND [DayOfWeek] = 'Monday'
 		AND DayOfWeekInMonth = 3
 
 	/*Mother's Day - Second Sunday of May*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Mother''s Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Mother''s Day'
 	WHERE
 		[Month] = 5
-		AND [DayOfWeekUSA] = 'Sunday'
+		AND [DayOfWeek] = 'Sunday'
 		AND DayOfWeekInMonth = 2
 
 	/*Father's Day - Third Sunday of June*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Father''s Day'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Father''s Day'
 	WHERE
 		[Month] = 6
-		AND [DayOfWeekUSA] = 'Sunday'
+		AND [DayOfWeek] = 'Sunday'
 		AND DayOfWeekInMonth = 3
 
 	/*Halloween 10/31*/
-	UPDATE [dbo].[time]
-		SET HolidayUSA = 'Halloween'
+	UPDATE [dbo].[time_period]
+		SET Holiday = 'Halloween'
 	WHERE
 		[Month] = 10
 		AND [DayOfMonth] = 31
@@ -354,10 +299,10 @@ END
 			DateKey,
 			[Year],
 			[DayOfMonth] 
-		FROM [dbo].[time]
+		FROM [dbo].[time_period]
 		WHERE
 			[Month] = 11
-			AND [DayOfWeekUSA] = 'Monday'
+			AND [DayOfWeek] = 'Monday'
 		ORDER BY
 			YEAR,
 			DayOfMonth 
@@ -398,16 +343,16 @@ END
 			SELECT @CURRENTYEAR = @CURRENTYEAR + 1
 		END
 
-		UPDATE [dbo].[time]
-			SET HolidayUSA  = 'Election Day'				
-		FROM [dbo].[time] DT
+		UPDATE [dbo].[time_period]
+			SET Holiday  = 'Election Day'				
+		FROM [dbo].[time_period] DT
 			JOIN @Holidays HL ON (HL.DateID + 1) = DT.DateKey
 		WHERE
 			[Week] = 1
 	END
-	--set flag for USA holidays in Dimension
-	UPDATE [dbo].[time]
-SET IsHolidayUSA = CASE WHEN HolidayUSA  IS NULL THEN 0 WHEN HolidayUSA  IS NOT NULL THEN 1 END
+	--set flag for  holidays in Dimension
+	UPDATE [dbo].[time_period]
+SET IsHoliday = CASE WHEN Holiday  IS NULL THEN 0 WHEN Holiday  IS NOT NULL THEN 1 END
 /*****************************************************************************************/
 
-SELECT * FROM [dbo].[time]
+SELECT * FROM [dbo].[time_period]
