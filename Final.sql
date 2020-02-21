@@ -57,19 +57,20 @@ WHERE t.TABLE_TYPE='BASE TABLE';
 
 USE Olist_DW
 
+--DROP TABLE orders
 
-
--- Gathers the data for the orders table
+-- Gathers the data from the Olist database and insert it into a table called orders in the Olist_DW database
 -- does a convert on the time.datekey from INT to DATE
 -- also converts orders order_purchase_timestamp from DATETIME to DATE
-SELECT TOP 100 t.DateKey, c.product_category_name_english, oi.seller_id, s.seller_city, 
+SELECT t.DateKey, c.product_category_name_english AS 'product_category', oi.seller_id, s.seller_city, 
 s.seller_state, SUM(oi.price) AS 'Total_Value', COUNT(oi.product_id) AS 'Units_Sold'
+INTO orders
 FROM Olist.dbo.orders o
 JOIN Olist.dbo.order_items oi ON oi.order_id = o.order_id
 JOIN Olist.dbo.products p ON p.product_id = oi.product_id
 JOIN Olist.dbo.category c ON c.product_category_name = p.product_category_name
 JOIN Olist.dbo.sellers s ON s.seller_id = oi.seller_id
-JOIN time t ON CONVERT(DATE,CONVERT(VARCHAR(8),t.DateKey,112)) = CONVERT(DATE,o.order_purchase_timestamp,112)
+JOIN time_period t ON CONVERT(DATE,CONVERT(VARCHAR(8),t.DateKey,112)) = CONVERT(DATE,o.order_purchase_timestamp,112)
 GROUP BY t.DateKey, o.order_purchase_timestamp, c.product_category_name_english, oi.seller_id, s.seller_city, s.seller_state
  
 
