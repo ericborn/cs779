@@ -73,7 +73,7 @@ JOIN Olist.dbo.sellers s ON s.seller_id = oi.seller_id
 JOIN time_period t ON CONVERT(DATE,CONVERT(VARCHAR(8),t.DateKey,112)) = CONVERT(DATE,o.order_purchase_timestamp,112)
 GROUP BY t.DateKey, o.order_purchase_timestamp, c.product_category_name_english, oi.seller_id, s.seller_city, s.seller_state
  
-
+SELECT TOP 100 * FROM orders
 
 -- Find misspelled Sãu Paulo in seller_city column
 SELECT distinct seller_city

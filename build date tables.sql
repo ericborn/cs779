@@ -2,7 +2,7 @@
 This script will build out a time_period table which contains various measurements of time, day, day of month, etc.
 
 Modified slightly to fix syntax errors, removed all references to UK time and only retained the following columns:
-DateKey, Date, DayOfMonth, DayName, DayOfWeek, DayOfWeekInMonth, WeekOfYear,
+date_key, Date, DayOfMonth, DayName, DayOfWeek, DayOfWeekInMonth, WeekOfYear,
 Month, MonthName, Quarter, Year, IsHoliday, IsWeekday, Holiday
 
 Original script create by Mubin M. Shaikh
@@ -32,7 +32,7 @@ END CATCH
 /**********************************************************************************/
 
 CREATE TABLE	[dbo].[time_period]
-	(	[DateKey] INT primary key, 
+	(	[date_key] INT primary key, 
 		[Date] DATE,
 		[DayOfMonth] VARCHAR(2), -- Field will hold day number of Month
 		[DayName] VARCHAR(9), -- Contains name of the day, Sunday, Monday 
@@ -54,7 +54,7 @@ GO
 --Value of Start Date Must be Less than Your End Date 
 
 DECLARE @StartDate DATETIME = '01/01/2017' --Starting value of Date Range
-DECLARE @EndDate DATETIME = '01/01/2020' --End Value of Date Range
+DECLARE @EndDate DATETIME = '01/01/2025' --End Value of Date Range
 
 --Temporary Variables To Hold the Values During Processing of Each Date of Year
 DECLARE
@@ -146,7 +146,7 @@ BEGIN
 	INSERT INTO [dbo].[time_period]
 	SELECT
 		
-		CONVERT (char(8),@CurrentDate,112) as DateKey,
+		CONVERT (char(8),@CurrentDate,112) as date_key,
 		@CurrentDate AS Date,
 		DATEPART(DD, @CurrentDate) AS DayOfMonth,
 		DATENAME(DW, @CurrentDate) AS DayName,
@@ -207,10 +207,10 @@ END
 	UPDATE [dbo].[time_period]
 		SET Holiday = 'Memorial Day'
 	FROM [dbo].[time_period]
-	WHERE DateKey IN 
+	WHERE date_key IN 
 		(
 		SELECT
-			MAX(DateKey)
+			MAX(date_key)
 		FROM [dbo].[time_period]
 		WHERE
 			[MonthName] = 'May'
@@ -224,10 +224,10 @@ END
 	UPDATE [dbo].[time_period]
 		SET Holiday = 'Labor Day'
 	FROM [dbo].[time_period]
-	WHERE DateKey IN 
+	WHERE date_key IN 
 		(
 		SELECT
-			MIN(DateKey)
+			MIN(date_key)
 		FROM [dbo].[time_period]
 		WHERE
 			[MonthName] = 'September'
@@ -298,7 +298,7 @@ END
 
 		INSERT INTO @Holidays(DateID, [Year],[Day])
 		SELECT
-			DateKey,
+			date_key,
 			[Year],
 			[DayOfMonth] 
 		FROM [dbo].[time_period]
@@ -348,7 +348,7 @@ END
 		UPDATE [dbo].[time_period]
 			SET Holiday  = 'Election Day'				
 		FROM [dbo].[time_period] DT
-			JOIN @Holidays HL ON (HL.DateID + 1) = DT.DateKey
+			JOIN @Holidays HL ON (HL.DateID + 1) = DT.date_key
 		WHERE
 			[Week] = 1
 	END
